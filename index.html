@@ -2950,8 +2950,91 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ init ============ */
-bindLuyenEvents();
-renderHome();
+/* ================= CỔNG ĐĂNG NHẬP (tự động chèn bởi capnhat-taikhoan.ps1) ================= */
+const AUTH_SALT="4bdfab0a9ab05b718af2eefa710084ab";
+const ACCOUNTS=[{"u":"tuan.nt","h":"b6a0f414cb93c40e3443a64ab1f90762a88840b876b313c45a2126b43f0c2f3e","n":"Nguyền Trần Tuấn","e":""},{"u":"thanh.nnt","h":"f64e57541c073ae29b91626844b2d6a4612348f8f9fa7c11249bb191beb0ca0b","n":"Nguyễn Ngọc Trang Thanh","e":""},{"u":"kiet.tt","h":"5e003568b7d3f6460ab25795b47d013394c60e83ca3bdf666c1c95f1c1a2bde8","n":"Tuấn Kiệt","e":""}];
+function __utf8(s){return unescape(encodeURIComponent(s));}
+function __sha256(ascii){
+  function R(v,a){return(v>>>a)|(v<<(32-a));}
+  var mp=Math.pow,mw=mp(2,32),res='',i,j,words=[],bitLen=ascii.length*8;
+  var hash=__sha256.h=__sha256.h||[],k=__sha256.k=__sha256.k||[],pc=k.length,comp={};
+  for(var cand=2;pc<64;cand++){if(!comp[cand]){for(i=0;i<313;i+=cand){comp[i]=cand;}hash[pc]=(mp(cand,.5)*mw)|0;k[pc++]=(mp(cand,1/3)*mw)|0;}}
+  ascii+='\x80';while(ascii.length%64-56)ascii+='\x00';
+  for(i=0;i<ascii.length;i++){j=ascii.charCodeAt(i);if(j>>8)return'';words[i>>2]|=j<<((3-i)%4)*8;}
+  words[words.length]=(bitLen/mw)|0;words[words.length]=bitLen;
+  for(j=0;j<words.length;){
+    var w=words.slice(j,j+=16),oh=hash;hash=hash.slice(0,8);
+    for(i=0;i<64;i++){
+      var w15=w[i-15],w2=w[i-2],a=hash[0],e=hash[4];
+      var t1=hash[7]+(R(e,6)^R(e,11)^R(e,25))+((e&hash[5])^((~e)&hash[6]))+k[i]+(w[i]=i<16?w[i]:(w[i-16]+(R(w15,7)^R(w15,18)^(w15>>>3))+w[i-7]+(R(w2,17)^R(w2,19)^(w2>>>10)))|0);
+      var t2=(R(a,2)^R(a,13)^R(a,22))+((a&hash[1])^(a&hash[2])^(hash[1]&hash[2]));
+      hash=[(t1+t2)|0].concat(hash);hash[4]=(hash[4]+t1)|0;
+    }
+    for(i=0;i<8;i++){hash[i]=(hash[i]+oh[i])|0;}
+  }
+  for(i=0;i<8;i++){for(j=3;j+1;j--){var b=(hash[i]>>(j*8))&255;res+=((b<16)?0:'')+b.toString(16);}}
+  return res;
+}
+function __addLogout(nm){
+  if(document.getElementById('__logoutBtn'))return;
+  var b=document.createElement('button');b.id='__logoutBtn';
+  b.textContent='⎋ Đăng xuất'+(nm&&nm!=='1'?' ('+nm+')':'');
+  b.onclick=function(){try{sessionStorage.removeItem('cccm_auth_user');}catch(e){}location.reload();};
+  document.body.appendChild(b);
+}
+function __authInit(boot){
+  var KEY='cccm_auth_user';
+  function unlock(nm){
+    try{sessionStorage.setItem(KEY,nm||'1');}catch(e){}
+    var g=document.getElementById('__loginGate');if(g&&g.parentNode)g.parentNode.removeChild(g);
+    document.documentElement.style.overflow='';
+    __addLogout(nm);boot();
+  }
+  var saved=null;try{saved=sessionStorage.getItem(KEY);}catch(e){}
+  if(saved){unlock(saved);return;}
+  var st=document.createElement('style');
+  st.textContent='#__loginGate{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0a3d24,#00A54C);font-family:Segoe UI,Roboto,system-ui,Arial,sans-serif;padding:16px}'
++'#__loginGate .card{background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.35);width:100%;max-width:360px;padding:28px 26px;box-sizing:border-box}'
++'#__loginGate h2{margin:0 0 2px;font-size:20px;color:#111}'
++'#__loginGate p.s{margin:0 0 16px;color:#666;font-size:13px}'
++'#__loginGate label{display:block;font-size:12.5px;color:#444;margin:12px 0 5px;font-weight:600}'
++'#__loginGate input{width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #d5d5db;border-radius:9px;font-size:15px}'
++'#__loginGate input:focus{outline:none;border-color:#00A54C;box-shadow:0 0 0 3px rgba(0,165,76,.18)}'
++'#__loginGate button{width:100%;margin-top:18px;padding:12px;border:0;border-radius:9px;background:#00A54C;color:#fff;font-size:15px;font-weight:700;cursor:pointer}'
++'#__loginGate button:hover{background:#008a3f}'
++'#__loginGate .err{color:#c31e1a;font-size:13px;margin-top:12px;min-height:16px}'
++'#__loginGate .ft{margin-top:14px;color:#9a9a9a;font-size:11.5px;text-align:center;line-height:1.5}'
++'#__logoutBtn{position:fixed;bottom:12px;right:12px;z-index:2147483000;background:rgba(0,0,0,.55);color:#fff;border:0;border-radius:999px;padding:7px 13px;font-size:12px;cursor:pointer;font-family:Segoe UI,Roboto,system-ui,Arial,sans-serif}'
++'#__logoutBtn:hover{background:rgba(0,0,0,.75)}';
+  document.head.appendChild(st);
+  var g=document.createElement('div');g.id='__loginGate';
+  g.innerHTML='<form class="card" id="__lf" autocomplete="off">'
++'<h2>Ôn tập Chứng chỉ chuyên môn CK</h2><p class="s">Vui lòng đăng nhập để tiếp tục</p>'
++'<label for="__lu">Tài khoản</label><input id="__lu" type="text" autocomplete="off" spellcheck="false">'
++'<label for="__lp">Mật khẩu</label><input id="__lp" type="password" autocomplete="off">'
++'<button type="submit">Đăng nhập</button>'
++'<div class="err" id="__lerr"></div>'
++'<div class="ft">Chỉ dành cho người dùng được cấp tài khoản.</div>'
++'</form>';
+  document.body.appendChild(g);
+  document.documentElement.style.overflow='hidden';
+  var f=document.getElementById('__lf'),er=document.getElementById('__lerr');
+  f.addEventListener('submit',function(e){
+    e.preventDefault();
+    var u=document.getElementById('__lu').value.trim().toLowerCase();
+    var p=document.getElementById('__lp').value.trim();
+    if(!u||!p){er.textContent='Vui lòng nhập đầy đủ tài khoản và mật khẩu.';return;}
+    var h=__sha256(__utf8(AUTH_SALT+'\n'+u+'\n'+p));
+    var acc=null;
+    for(var i=0;i<ACCOUNTS.length;i++){if(ACCOUNTS[i].u===u&&ACCOUNTS[i].h===h){acc=ACCOUNTS[i];break;}}
+    if(!acc){er.textContent='Sai tài khoản hoặc mật khẩu.';return;}
+    if(acc.e){var t=new Date();var td=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');if(td>acc.e){er.textContent='Tài khoản đã hết hạn ('+acc.e+').';return;}}
+    unlock(acc.n||acc.u);
+  });
+  document.getElementById('__lu').focus();
+}
+__authInit(function(){ bindLuyenEvents(); renderHome(); });
+
 </script>
 </body>
 </html>

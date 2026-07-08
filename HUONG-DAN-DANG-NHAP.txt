@@ -1,0 +1,27 @@
+========================================================
+  ÔN TẬP CHỨNG CHỈ CHUYÊN MÔN CHỨNG KHOÁN – BẢN ĐĂNG NHẬP
+  Hướng dẫn cho người dùng
+========================================================
+
+1. MỞ ỨNG DỤNG
+   - Giải nén file zip vào một thư mục.
+   - Nháy đúp file OnTapCCCM.html (khuyên dùng Chrome hoặc Edge).
+
+2. ĐĂNG NHẬP
+   - Nhập TÀI KHOẢN và MẬT KHẨU đã được cấp, bấm "Đăng nhập".
+   - Nhập sai sẽ báo lỗi. Nếu quên/khoá, liên hệ người cấp tài khoản.
+   - Tài khoản KHÔNG phân biệt hoa/thường; mật khẩu CÓ phân biệt.
+
+3. ĐĂNG XUẤT
+   - Bấm nút "⎋ Đăng xuất" ở góc dưới bên phải màn hình.
+   - Khi đóng hẳn trình duyệt, lần mở sau sẽ phải đăng nhập lại.
+
+4. LƯU Ý
+   - KHÔNG dùng cửa sổ Ẩn danh (Incognito): tiến độ học sẽ không được
+     lưu và phải đăng nhập lại mỗi lần.
+   - Tiến độ học (lịch sử thi, đánh dấu…) lưu trên chính trình duyệt của
+     máy này. Muốn chuyển sang máy khác: dùng "Xuất/Nhập tiến độ" trong app.
+   - Bản này không kèm tài liệu PDF gốc nên không có nút "Mở tài liệu gốc".
+
+(Bản đăng nhập chỉ nhằm kiểm soát người sử dụng. Vui lòng không chia sẻ
+ tài khoản/mật khẩu cho người ngoài.)
