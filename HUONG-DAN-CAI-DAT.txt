@@ -1,0 +1,83 @@
+========================================================
+  ÔN TẬP CHỨNG CHỈ CHUYÊN MÔN CHỨNG KHOÁN (OnTapCCCM)
+  Hướng dẫn cài đặt & sử dụng trên máy mới
+========================================================
+
+1. CÀI ĐẶT
+--------------------------------------------------------
+Ứng dụng là MỘT file duy nhất: OnTapCCCM.html — không cần
+cài đặt phần mềm gì thêm.
+
+Cách dùng:
+  - Giải nén file zip vào một thư mục cố định,
+    ví dụ: D:\OnTapCCCM
+  - Nháy đúp file OnTapCCCM.html — app mở bằng trình duyệt
+    (khuyên dùng Chrome hoặc Edge).
+  - Muốn có lối tắt: chuột phải file OnTapCCCM.html
+    -> Send to -> Desktop (create shortcut).
+
+Lưu ý:
+  - Nếu bạn dùng BẢN ĐẦY ĐỦ (kèm các thư mục tài liệu PDF):
+    giữ nguyên cấu trúc thư mục như trong file zip — file
+    OnTapCCCM.html phải nằm CẠNH các thư mục tài liệu thì
+    nút "Mở tài liệu gốc" trong tab Khái niệm mới hoạt động.
+  - Nếu bạn dùng BẢN GỌN (chỉ có file HTML): mọi tính năng
+    học/luyện đề/thi thử vẫn đầy đủ, chỉ riêng nút
+    "Mở tài liệu gốc" sẽ không mở được file PDF.
+  - KHÔNG mở app trong cửa sổ ẩn danh (Incognito) — tiến độ
+    học sẽ không được lưu lại.
+  - Không đổi tên/di chuyển file HTML sau khi đã học, vì
+    tiến độ gắn với trình duyệt trên máy đó. Nếu buộc phải
+    chuyển, hãy Xuất tiến độ trước (xem mục 3).
+
+2. SỬ DỤNG
+--------------------------------------------------------
+  - Màn hình đầu: chọn 1 trong 8 môn học.
+  - Trong mỗi môn có 4 thẻ:
+      + Khái niệm : học lý thuyết theo chương (AI tóm tắt
+                    từ slide bài giảng + link mở PDF gốc)
+      + Luyện đề  : làm từng câu, lọc theo chủ đề, tìm kiếm,
+                    đánh dấu câu khó, tự sửa đáp án
+      + Thi thử   : đề ngẫu nhiên chia đều chủ đề, bấm giờ,
+                    chấm điểm, xem lại bài làm
+      + Tiến độ   : lịch sử thi, câu hay sai của môn đó
+
+  CẢNH BÁO QUAN TRỌNG: phần lớn đáp án do AI biên soạn
+  (bộ đề gốc không kèm đáp án) — hãy đối chiếu với tài liệu
+  và giảng viên. Câu gắn nhãn "Đáp án gốc" mới là đáp án
+  từ file đáp án chính thức. Riêng môn Quản trị công ty:
+  toàn bộ câu hỏi do AI tự soạn từ slide.
+
+3. CHUYỂN TIẾN ĐỘ HỌC SANG MÁY KHÁC
+--------------------------------------------------------
+  Trên máy cũ:
+    - Mở app -> màn hình chọn môn -> mục "Đồng bộ tiến độ"
+    - Bấm "Xuất tiến độ ra file" -> tải về file
+      tien-do-on-tap-cccm-YYYY-MM-DD.json
+  Trên máy mới:
+    - Mở app -> bấm "Nhập tiến độ từ file" -> chọn file trên
+    - Tiến độ (lịch sử thi, thống kê, đánh dấu, đáp án tự
+      sửa) của TẤT CẢ các môn sẽ được khôi phục.
+
+4. THÔNG TIN PHIÊN BẢN
+--------------------------------------------------------
+  Build: 2026-07-08
+  8 môn — 1.330 câu hỏi — 58 chương lý thuyết
+  Lịch sử gần đây: đã loại 105 câu trùng lặp (06/07/2026) và
+  bổ sung 31 câu mới CÓ rà đáp án (08/07/2026) — các câu mới
+  gắn nhãn chủ đề "(bổ sung)" và cờ chưa xác minh (verified:false).
+  Môn / số câu (số câu có đáp án gốc chính thức):
+    Cơ bản về CK & TTCK ....... 614 (0)
+    Pháp luật ................. 87 (82)
+    Môi giới & TVĐT ........... 94 (32)
+    Phân tích đầu tư .......... 156 (33)
+    Bảo lãnh phát hành ........ 26 (0)
+    Phân tích BCTC ............ 120 (29)
+    Quản lý quỹ ............... 149 (147)
+    Quản trị công ty .......... 84 (0 — AI tự soạn từ slide)
+  (Số câu "đáp án gốc chính thức" KHÔNG tính các câu "(bổ sung)"
+   vì đáp án các câu này do AI biên, đã rà nhưng nên duyệt lại.)
+
+  Bản ĐẦY ĐỦ còn kèm 2 file báo cáo rà soát (mở bằng trình duyệt):
+    - ra-soat-trung-lap.html         (đợt loại trùng 06/07)
+    - bao-cao-doi-chieu-4file.html   (đối chiếu 176 câu 4 file)
