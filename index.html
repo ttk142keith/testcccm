@@ -338,11 +338,6 @@ html[data-theme="dark"] img:not([src*=".svg"]){filter:brightness(.92)}
 
   <!-- ========== HOME: chọn môn ========== -->
   <section id="home">
-    <div id="disc" class="disclaimer">
-      <span>⚠️</span>
-      <div><b>Lưu ý về đáp án:</b> Phần lớn bộ đề gốc <b>không kèm đáp án</b>. Đáp án &amp; giải thích trong ứng dụng do <b>AI biên soạn tự động</b> và <u>cần đối chiếu với tài liệu/giảng viên</u>. Câu có đáp án từ file đáp án chính thức được gắn nhãn <span class="badge b-green">Đáp án gốc</span>; câu gắn nhãn <span class="badge b-red">Cần kiểm tra</span> đặc biệt nên rà lại. <span id="discAct"></span></div>
-      <button onclick="document.getElementById('disc').style.display='none'">Đã hiểu</button>
-    </div>
     <h2 class="sec">Chọn môn học</h2>
     <div class="subgrid" id="subGrid"></div>
     <div class="card">
@@ -2813,9 +2808,6 @@ function renderHome(){
     <span>📖 <b>${totC}</b> chương lý thuyết</span>
     <span>🛠️ Cập nhật: <b>${META.build}</b></span>
     ${AUTH.user?`<span>👤 <b>${esc(AUTH.name||AUTH.user)}</b>${isAdmin()?' · quản trị':''}</span>`:''}`;
-  const da=$('#discAct');
-  if(da)da.innerHTML=isAdmin()?'Bạn có thể tự sửa đáp án trong app.'
-    :'Nếu thấy đáp án chưa đúng, hãy bấm <b>💬 Góp ý đáp án</b> dưới câu hỏi để gửi người quản trị.';
   renderFeedbackCard();
 }
 
