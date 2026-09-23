@@ -2707,10 +2707,16 @@ const FEEDBACK_MAX=4000;
 
 /* ============ storage (per-subject) ============ */
 const PROG_KEYS=['history','stats','overrides','bookmarks','resume','session'];
+/* Tiền tố theo tài khoản đang đăng nhập — để mỗi người một vùng lưu riêng.
+   Bản KHÔNG đăng nhập: window.__CCCM_AUTH không tồn tại -> tiền tố rỗng, key y như cũ.
+   Bản CÓ đăng nhập: login-inject đặt window.__CCCM_AUTH TRƯỚC khi gọi boot(), nên máy
+   dùng chung không còn lộ góp ý / tiến độ của người đăng nhập trước.
+   Phải đọc động mỗi lần gọi, không cache: LS định nghĩa lúc tải trang, đăng nhập xảy ra sau. */
+const nsKey=k=>{const a=window.__CCCM_AUTH;return 'cccm_'+(a&&a.u?a.u+'_':'')+k;};
 const LS={
-  get:(k,d)=>{try{return JSON.parse(localStorage.getItem('cccm_'+k))??d}catch(e){return d}},
-  set:(k,v)=>localStorage.setItem('cccm_'+k,JSON.stringify(v)),
-  del:k=>localStorage.removeItem('cccm_'+k)
+  get:(k,d)=>{try{return JSON.parse(localStorage.getItem(nsKey(k)))??d}catch(e){return d}},
+  set:(k,v)=>localStorage.setItem(nsKey(k),JSON.stringify(v)),
+  del:k=>localStorage.removeItem(nsKey(k))
 };
 /* migrate v1 (single-subject) keys -> coban */
 (function(){
@@ -3666,8 +3672,8 @@ function toggleTheme(){
 applyAuth();
 retryFeedback(true);
 /* ================= CỔNG ĐĂNG NHẬP (tự động chèn bởi capnhat-taikhoan.ps1) ================= */
-const AUTH_SALT="d00848debdbbb04b182196d4460f2efb";
-const ACCOUNTS=[{"u":"tuan.nt","h":"c388f7bc4d73c9c23bab2bea305821e334d7c31049cfcd923b9eb6921d59df7a","n":"Nguyền Trần Tuấn","e":"","r":"user"},{"u":"thanh.nnt","h":"b21a9cb8f02444ecf0622cedcedc39793623d0996f745e75b52b7c7e4d3dd61d","n":"Nguyễn Ngọc Trang Thanh","e":"","r":"user"},{"u":"kiet.tt","h":"742a30487d5d851c802cdb6244dd45a35e5d69e14c8bd116b0df767e46e9ae28","n":"Tuấn Kiệt","e":"","r":"admin"},{"u":"tuyet.bt","h":"cc9551fbfba09fc24d12522899d3307564e8539d05c6f8739ee5a966bba2435a","n":"Bùi Thị Tuyết","e":"","r":"user"},{"u":"maianh","h":"c0c5fa355182be0fb11c4f0217d9fd285f5cebf171e6de0e003c440b0b34da21","n":"Nguyễn Thị Mai Anh","e":"","r":"user"},{"u":"ngocthao","h":"354abac657fc7e741489f61c6ec5c4bc11e967f1f7d133ac8103b1f9d79f1234","n":"Ngọc Thảo","e":"","r":"user"}];
+const AUTH_SALT="2faa366d297e4cb62e528c93b92d60bf";
+const ACCOUNTS=[{"u":"tuan.nt","h":"8265023858d9e506e4f88b05e4db9af087fd11b81bdb52465169b9fda586be3d","n":"Nguyền Trần Tuấn","e":"","r":"user"},{"u":"thanh.nnt","h":"b0eb9c79ccdab28fcdc38e8618bf4455f18d16fc04460f1d4116bdf7cbc2d60b","n":"Nguyễn Ngọc Trang Thanh","e":"","r":"user"},{"u":"kiet.tt","h":"1bf6c6a61dd39a3cd2a2bb47bbdab6bcfd0e9f97060fd1861d66c4f2a35c0879","n":"Tuấn Kiệt","e":"","r":"admin"},{"u":"tuyet.bt","h":"cb0c5fb8fa9ce4b5beb88452bdece5e6004345ad3f0307cfaceb65e1a9112f24","n":"Bùi Thị Tuyết","e":"","r":"user"},{"u":"maianh","h":"8e4d847797d34169f85841020853c4b23e1ff7bd6ee553147bc6b12d9a8e23ff","n":"Nguyễn Thị Mai Anh","e":"","r":"user"},{"u":"ngocthao","h":"e8b8a7763f443e3abd8541914f915286e504830c13f746910bda4a8b52e12ae4","n":"Ngọc Thảo","e":"","r":"user"}];
 function __utf8(s){return unescape(encodeURIComponent(s));}
 function __sha256(ascii){
   function R(v,a){return(v>>>a)|(v<<(32-a));}
