@@ -338,6 +338,11 @@ html[data-theme="dark"] img:not([src*=".svg"]){filter:brightness(.92)}
 
   <!-- ========== HOME: chọn môn ========== -->
   <section id="home">
+    <div id="disc" class="disclaimer" style="display:none">
+      <span>⚠️</span>
+      
+      <button onclick="document.getElementById('disc').style.display='none'">Đã hiểu</button>
+    </div>
     <h2 class="sec">Chọn môn học</h2>
     <div class="subgrid" id="subGrid"></div>
     <div class="card">
@@ -2808,6 +2813,9 @@ function renderHome(){
     <span>📖 <b>${totC}</b> chương lý thuyết</span>
     <span>🛠️ Cập nhật: <b>${META.build}</b></span>
     ${AUTH.user?`<span>👤 <b>${esc(AUTH.name||AUTH.user)}</b>${isAdmin()?' · quản trị':''}</span>`:''}`;
+  const da=$('#discAct');
+  if(da)da.innerHTML=isAdmin()?'Bạn có thể tự sửa đáp án trong app.'
+    :'Nếu thấy đáp án chưa đúng, hãy bấm <b>💬 Góp ý đáp án</b> dưới câu hỏi để gửi người quản trị.';
   renderFeedbackCard();
 }
 
@@ -3615,12 +3623,51 @@ function flushSession(){
 window.addEventListener('beforeunload',flushSession);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flushSession();});
 
+/* ============ chuyển giao diện sáng / tối ============
+   - Lựa chọn của người dùng lưu ở localStorage('cccm_theme') -> nhớ giữa các lần mở.
+   - Chưa chọn lần nào thì bám theo cài đặt sáng/tối của hệ điều hành. */
+var THEME_KEY='cccm_theme';
+function currentTheme(){return document.documentElement.getAttribute('data-theme')==='dark'?'dark':'light';}
+function paintThemeBtn(){
+  var b=document.getElementById('themeBtn');if(!b)return;
+  var dark=currentTheme()==='dark';
+  var ico=b.querySelector('.ico')||b;
+  ico.textContent=dark?'☀️':'🌙';
+  var lbl=dark?'Chuyển sang giao diện sáng':'Chuyển sang giao diện tối';
+  b.title=lbl;b.setAttribute('aria-label',lbl);
+}
+function setTheme(t,remember){
+  document.documentElement.setAttribute('data-theme',t==='dark'?'dark':'light');
+  if(remember){try{localStorage.setItem(THEME_KEY,t);}catch(e){}}
+  paintThemeBtn();
+}
+function toggleTheme(){
+  var next=currentTheme()==='dark'?'light':'dark';
+  setTheme(next,true);
+  if(typeof toast==='function')toast(next==='dark'?'Đã bật giao diện tối 🌙':'Đã bật giao diện sáng ☀️');
+}
+(function(){
+  var b=document.getElementById('themeBtn');
+  if(b)b.addEventListener('click',toggleTheme);
+  paintThemeBtn();
+  /* chưa chọn thủ công -> đổi theo hệ điều hành ngay khi hệ điều hành đổi */
+  if(window.matchMedia){
+    var mq=window.matchMedia('(prefers-color-scheme: dark)');
+    var onChange=function(e){
+      var saved=null;try{saved=localStorage.getItem(THEME_KEY);}catch(err){}
+      if(saved!=='light'&&saved!=='dark')setTheme(e.matches?'dark':'light',false);
+    };
+    if(mq.addEventListener)mq.addEventListener('change',onChange);
+    else if(mq.addListener)mq.addListener(onChange);
+  }
+})();
+
 /* ============ init ============ */
 applyAuth();
 retryFeedback(true);
 /* ================= CỔNG ĐĂNG NHẬP (tự động chèn bởi capnhat-taikhoan.ps1) ================= */
-const AUTH_SALT="756733e504662dc35ace6e6636061e3a";
-const ACCOUNTS=[{"u":"tuan.nt","h":"a5608ca426bdc719839cc31959228ba9f9f8e5839cf93a90e528cdfd46e95f10","n":"Nguyền Trần Tuấn","e":"","r":"user"},{"u":"thanh.nnt","h":"0ef1640799955a86db6b183fc6d70c27c7277a08991c4cfd15133e714aed4dd8","n":"Nguyễn Ngọc Trang Thanh","e":"","r":"user"},{"u":"kiet.tt","h":"e4047ced1ce5c3d4f794f6ddccc9fb917654d445402823235ee1c5fec5f94da6","n":"Tuấn Kiệt","e":"","r":"admin"},{"u":"tuyet.bt","h":"035710842f22b60966241ed242a94640799a93002adeba51d464cfadea189eff","n":"Bùi Thị Tuyết","e":"","r":"user"},{"u":"maianh","h":"f3c0dd50d3430a516fece6fe8e270f416c8c00c2fb0d1ab374d13d667ea61b7e","n":"Nguyễn Thị Mai Anh","e":"","r":"user"}];
+const AUTH_SALT="d00848debdbbb04b182196d4460f2efb";
+const ACCOUNTS=[{"u":"tuan.nt","h":"c388f7bc4d73c9c23bab2bea305821e334d7c31049cfcd923b9eb6921d59df7a","n":"Nguyền Trần Tuấn","e":"","r":"user"},{"u":"thanh.nnt","h":"b21a9cb8f02444ecf0622cedcedc39793623d0996f745e75b52b7c7e4d3dd61d","n":"Nguyễn Ngọc Trang Thanh","e":"","r":"user"},{"u":"kiet.tt","h":"742a30487d5d851c802cdb6244dd45a35e5d69e14c8bd116b0df767e46e9ae28","n":"Tuấn Kiệt","e":"","r":"admin"},{"u":"tuyet.bt","h":"cc9551fbfba09fc24d12522899d3307564e8539d05c6f8739ee5a966bba2435a","n":"Bùi Thị Tuyết","e":"","r":"user"},{"u":"maianh","h":"c0c5fa355182be0fb11c4f0217d9fd285f5cebf171e6de0e003c440b0b34da21","n":"Nguyễn Thị Mai Anh","e":"","r":"user"},{"u":"ngocthao","h":"354abac657fc7e741489f61c6ec5c4bc11e967f1f7d133ac8103b1f9d79f1234","n":"Ngọc Thảo","e":"","r":"user"}];
 function __utf8(s){return unescape(encodeURIComponent(s));}
 function __sha256(ascii){
   function R(v,a){return(v>>>a)|(v<<(32-a));}
@@ -3735,45 +3782,6 @@ function __authInit(boot){
   paintGate();g.appendChild(tb);
   document.getElementById('__lu').focus();
 }
-/* ============ chuyển giao diện sáng / tối ============
-   - Lựa chọn của người dùng lưu ở localStorage('cccm_theme') -> nhớ giữa các lần mở.
-   - Chưa chọn lần nào thì bám theo cài đặt sáng/tối của hệ điều hành. */
-var THEME_KEY='cccm_theme';
-function currentTheme(){return document.documentElement.getAttribute('data-theme')==='dark'?'dark':'light';}
-function paintThemeBtn(){
-  var b=document.getElementById('themeBtn');if(!b)return;
-  var dark=currentTheme()==='dark';
-  var ico=b.querySelector('.ico')||b;
-  ico.textContent=dark?'☀️':'🌙';
-  var lbl=dark?'Chuyển sang giao diện sáng':'Chuyển sang giao diện tối';
-  b.title=lbl;b.setAttribute('aria-label',lbl);
-}
-function setTheme(t,remember){
-  document.documentElement.setAttribute('data-theme',t==='dark'?'dark':'light');
-  if(remember){try{localStorage.setItem(THEME_KEY,t);}catch(e){}}
-  paintThemeBtn();
-}
-function toggleTheme(){
-  var next=currentTheme()==='dark'?'light':'dark';
-  setTheme(next,true);
-  if(typeof toast==='function')toast(next==='dark'?'Đã bật giao diện tối 🌙':'Đã bật giao diện sáng ☀️');
-}
-(function(){
-  var b=document.getElementById('themeBtn');
-  if(b)b.addEventListener('click',toggleTheme);
-  paintThemeBtn();
-  /* chưa chọn thủ công -> đổi theo hệ điều hành ngay khi hệ điều hành đổi */
-  if(window.matchMedia){
-    var mq=window.matchMedia('(prefers-color-scheme: dark)');
-    var onChange=function(e){
-      var saved=null;try{saved=localStorage.getItem(THEME_KEY);}catch(err){}
-      if(saved!=='light'&&saved!=='dark')setTheme(e.matches?'dark':'light',false);
-    };
-    if(mq.addEventListener)mq.addEventListener('change',onChange);
-    else if(mq.addListener)mq.addListener(onChange);
-  }
-})();
-
 __authInit(function(){ if(typeof applyAuth==='function')applyAuth(); bindLuyenEvents(); renderHome(); });
 
 </script>
