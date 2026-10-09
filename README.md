@@ -12,7 +12,8 @@
 | `web/` | Bản mới: chỉ có giao diện, nội dung được tải qua `web/js/content.js`. Đây là thư mục sẽ đưa lên mạng. |
 | `tools/extract-content.mjs` | Tách nội dung từ `index.html` ra `content/` (không commit) và kiểm tra dữ liệu. |
 | `tools/dev-server.mjs` | Máy chủ xem thử trên máy. |
-| `tests/smoke.mjs` | Kiểm thử tự động: so sánh hành vi bản cũ và bản mới. |
+| `tests/navigation.mjs` | Kiểm thử điều hướng của `index.html`: nút "← ...", Back/Tiến, tự mở lại chương, F5. |
+| `tests/smoke.mjs` | Kiểm thử bản tách `web/` so với bản cũ (cần làm lại trên bản 07/10). |
 
 ## Lệnh
 
@@ -20,5 +21,5 @@
 npm install
 npm run extract   # sinh content/ từ index.html
 npm run dev       # xem thử: http://localhost:8080/web/
-npm test          # chạy kiểm thử
+npm test          # kiểm thử điều hướng của index.html
 ```

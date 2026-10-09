@@ -679,7 +679,7 @@ details.data-box .db-in>.card{box-shadow:none;margin-bottom:14px}
   <!-- ========== SUBJECT VIEW ========== -->
   <section id="subject" style="display:none">
     <div class="subj-head">
-      <button type="button" class="backbtn" style="margin:0" onclick="goUp(closeSubject)">← Chọn môn khác</button>
+      <button type="button" class="backbtn" style="margin:0" onclick="goUp(closeSubject,1)">← Chọn môn khác</button>
       <h2 id="subjTitle"></h2>
     </div>
     <div class="stripe" id="stripe" style="margin:0 0 6px"></div>
@@ -3201,7 +3201,7 @@ function openChapter(n,restoring){
   const c=CHAPTERS.find(x=>x.chapter===n);if(!c)return;
   if(cur&&P){sess().chapter=n;saveSession();}
   const wrap=$('#chapList');
-  wrap.innerHTML=`<button class="backbtn" onclick="goUp(closeChapter)">← Quay lại danh sách chương</button>
+  wrap.innerHTML=`<button class="backbtn" onclick="goUp(closeChapter,2)">← Quay lại danh sách chương</button>
   <div class="card chap-detail">
     <div class="num" style="color:var(--brand);font-weight:800;font-size:12px">CHƯƠNG ${c.chapter}</div>
     <h2>${esc(c.title)}</h2>
@@ -4528,7 +4528,7 @@ function renderHome(){
       +'</div>';
   }).join('');
   var cr=$('#homeCrumb');
-  if(cr) cr.innerHTML='<button class="backbtn" style="margin:0" onclick="goUp(backToPrograms)">← Chọn kỳ thi khác</button>'
+  if(cr) cr.innerHTML='<button class="backbtn" style="margin:0" onclick="goUp(backToPrograms,0)">← Chọn kỳ thi khác</button>'
     +'<span class="sep">/</span><b>'+esc(curProgram.name)+'</b>';
   $('#homeStripe').innerHTML='<span>🗂️ <b>'+list.length+'</b> môn học</span>'
     +'<span>📚 <b>'+totQ+'</b> câu hỏi</span>'
@@ -4651,7 +4651,10 @@ function switchTab(tab){
    #/cccm                danh sách môn        #/cccm/coban/hoc/3   chương 3 (tab Khái niệm)
    - Nút Back của điện thoại / trình duyệt quay lại cấp trước; F5 giữ nguyên màn đang xem.
    - Mở kỳ thi / môn / chương = thêm 1 mục lịch sử; đổi tab = thay mục hiện tại (Back không lùi qua từng tab).
-   - Nút "← ..." trong app: nếu mục hiện tại do app thêm (state.up) thì history.back(), để lịch sử không phình.
+   - Mỗi mục lịch sử do app thêm đúng bằng 1 cấp màn hình — kể cả khi vào môn mà app tự mở lại chương đang đọc dở
+     (thêm "danh sách chương" rồi mới tới "chương").
+   - Nút "← ..." trong app biết cấp của màn đích: nếu các mục phía sau đúng là các cấp cha thì lùi lịch sử
+     đúng số cấp cần thiết (lịch sử không phình), không thì chuyển màn trực tiếp.
    - file:// không cho pushState thì lùi về location.hash (vẫn chạy, chỉ kém gọn). */
 var _routing=false,_navHold=0,_routeReady=false;
 function currentHash(){
@@ -4662,16 +4665,38 @@ function currentHash(){
   if(curProgram&&$('#home').style.display!=='none')return '#/'+curProgram.id;
   return '#/';
 }
+/* Chuỗi cấp màn hình dẫn tới 1 địa chỉ: #/ → #/kỳ-thi → #/kỳ-thi/môn/tab → #/kỳ-thi/môn/hoc/chương (cấp 0 → 3) */
+function routeChain(h){
+  var p=(h||'').replace(/^#\/?/,'').split('/').filter(Boolean),c=['#/'];
+  if(p[0])c.push('#/'+p[0]);
+  if(p[0]&&p[1]&&p[2])c.push('#/'+p.slice(0,3).join('/'));
+  if(p[0]&&p[1]&&p[2]==='hoc'&&p[3]!=null)c.push('#/'+p.slice(0,4).join('/'));
+  return c;
+}
+function routeDepth(h){return routeChain(h).length-1;}
 function syncRoute(push){
   if(_routing||_navHold||!_routeReady)return;
-  var h=currentHash();if(location.hash===h)return;
+  var h=currentHash(),here=location.hash||'#/';if(here===h)return;
   try{
-    if(push)history.pushState({app:1,up:1},'',h);
-    else history.replaceState(Object.assign({},history.state||{},{app:1}),'',h);
+    if(push){
+      /* Thêm đủ từng cấp còn thiếu giữa màn đang đứng và màn mới, mỗi cấp 1 mục lịch sử.
+         n = số bước có thể lùi mà vẫn rơi đúng vào màn cha (goUp dùng để lùi nhiều cấp một lần). */
+      var chain=routeChain(h),i=chain.indexOf(here),st=history.state||{},n;
+      if(i<0){n=-1;i=chain.length>1?0:-1;}   /* màn đang đứng không phải cấp cha của màn mới */
+      else n=st.up?(st.n==null?1:st.n):0;
+      for(var k=i+1;k<chain.length;k++)history.pushState({app:1,up:1,n:++n},'',chain[k]);
+    }else{
+      /* đổi tab: giữ nguyên thông tin lùi; đổi sang cấp khác: mục này không còn lùi theo cấp được */
+      var keep=routeDepth(h)===routeDepth(here)?(history.state||{}):{};
+      history.replaceState(Object.assign({},keep,{app:1}),'',h);
+    }
   }catch(e){try{if(push)location.hash=h;else location.replace(h);}catch(e2){}}
 }
-function goUp(fallback){
-  if(!_routing&&_routeReady&&history.state&&history.state.up)history.back();
+/* toDepth = cấp của màn đích: 0 chọn kỳ thi, 1 danh sách môn, 2 trong môn */
+function goUp(fallback,toDepth){
+  var st=history.state||{},d=routeDepth(location.hash);
+  var k=d-(toDepth==null?d-1:toDepth);
+  if(!_routing&&_routeReady&&st.up&&k>0&&k<=(st.n==null?1:st.n))history.go(-k);
   else fallback();
 }
 function parseRoute(){

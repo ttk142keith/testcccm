@@ -32,7 +32,7 @@ Các lựa chọn mặc định trên (Google vào thẳng, email chờ duyệt)
 
 ## Danh sách cấu phần
 
-- [x] **1. Tách nội dung khỏi giao diện** — xong 2026-10-09
+- [ ] **1. Tách nội dung khỏi giao diện** — đã làm trên bản 16/09, **cần làm lại trên bản 07/10** (xem bên dưới)
 - [ ] **2. Nền móng dữ liệu & phân quyền (Supabase)**
 - [ ] **3. Đăng nhập Google + đưa bản mới lên Cloudflare Pages**
 - [ ] **4. Trang quản trị: duyệt, cấp quyền, khoá tài khoản**
@@ -45,7 +45,16 @@ Các lựa chọn mặc định trên (Google vào thẳng, email chờ duyệt)
 
 ---
 
-### 1. Tách nội dung khỏi giao diện ✅
+### 1. Tách nội dung khỏi giao diện ⚠️ cần làm lại
+
+> **Trạng thái 2026-10-09:** phần dưới đây được làm trên bản `index.html` ngày 16/09. Bản 07/10 đã thêm cấp "chọn kỳ thi"
+> (CCCM, CCHN Môi giới, CCHN Quản lý quỹ), các tab Mốc số / Công thức / Review đề, cơ chế điều hướng theo địa chỉ,
+> và dữ liệu CCHN được khai báo trong phần code. Vì vậy `web/` và `tools/extract-content.mjs` đã lỗi thời,
+> và `npm run test:web` sẽ báo sai cho tới khi làm lại.
+>
+> **Cần chốt một nơi sửa code duy nhất.** Đề xuất: bạn tiếp tục phát triển như hiện nay; khi sẵn sàng sang cấu phần 2
+> thì tạm dừng thêm tính năng vài ngày, Claude tách lại từ bản mới nhất (đã có script, làm lại nhanh),
+> và từ đó mọi thay đổi chỉ làm trong `web/`. Sửa song song ở hai nơi chắc chắn sẽ lệch nhau.
 
 **Mục tiêu:** app không còn nhúng sẵn 1.725 câu hỏi trong trang, mà tải theo từng môn qua một "cửa" duy nhất (`web/js/content.js`).
 Đây là điều kiện bắt buộc để chặn nội dung trả phí ở các bước sau.
@@ -59,14 +68,14 @@ Các lựa chọn mặc định trên (Google vào thẳng, email chờ duyệt)
   (mở môn, đọc chương, luyện đề, tìm kiếm, thi thử, chấm điểm, lịch sử, học tiếp, xuất tiến độ, đổi giao diện),
   kiểm tra cả trường hợp thiếu nội dung và màn hình điện thoại. Kết quả: 27/27 đạt.
 
-**Không thay đổi:** `index.html` ở thư mục gốc (bản đang chạy trên GitHub Pages) được giữ nguyên. Người dùng hiện tại không bị ảnh hưởng.
+**Không thay đổi:** `index.html` ở thư mục gốc (bản đang chạy trên GitHub Pages) được giữ nguyên ở bước này. Người dùng hiện tại không bị ảnh hưởng.
 
 **Chạy thử trên máy (không bắt buộc):** cài Node.js 20 trở lên, rồi chạy:
 ```
 npm install
 npm run extract     # sinh content/ từ index.html
 npm run dev         # mở http://localhost:8080/web/
-npm test            # chạy kiểm thử
+npm run test:web    # kiểm thử bản tách (so với bản cũ)
 ```
 Bản mới **không còn mở được bằng cách nháy đúp file**: trình duyệt chặn đọc file JSON qua `file://`, nên phải chạy qua máy chủ như trên.
 Khi lên web thật (cấu phần 3), điều này không còn là vấn đề.
@@ -149,6 +158,31 @@ Tên miền riêng; tắt GitHub Pages và **sau đó** mới chuyển repo sang
 điều khoản sử dụng, chính sách hoàn tiền; sao lưu định kỳ; thuế và thủ tục thương mại điện tử (xem mục cuối).
 
 ---
+
+## Nhật ký sửa lỗi bản hiện hành (`index.html`)
+
+### 2026-10-09 — Nút "Quay lại" về nhầm màn hình
+
+**Triệu chứng** (tái hiện được trên cả web và file mở trực tiếp):
+1. Đang đọc dở một chương; hôm sau vào lại môn thì app tự mở chương đó. Bấm "← Quay lại danh sách chương"
+   lại về **danh sách môn** (Luật / Chuyên môn) thay vì danh sách chương.
+2. Đang đọc chương, bấm "← Chọn môn khác" thì chỉ về **danh sách chương**, chưa ra danh sách môn.
+3. Sau khi app tự mở lại chương, bấm Back của trình duyệt/điện thoại 2 lần là **thoát khỏi app**.
+
+**Nguyên nhân:** các nút "← ..." không chuyển thẳng tới màn đích mà lùi lịch sử trình duyệt 1 bước,
+với giả định bước trước luôn là màn cha. Khi vào môn, app tự mở lại chương đang đọc **trong một bước**,
+bỏ qua mục "danh sách chương", nên lùi 1 bước sẽ về thẳng danh sách môn.
+
+**Cách sửa** (34 dòng, chỉ trong phần điều hướng):
+- Mỗi mục lịch sử do app thêm đúng bằng 1 cấp màn hình. Khi tự mở lại chương, app thêm "danh sách chương" rồi mới tới "chương".
+- Mỗi nút "← ..." khai báo cấp của màn đích (`goUp(closeChapter,2)`, `goUp(closeSubject,1)`, `goUp(backToPrograms,0)`)
+  và lùi đúng số cấp cần thiết. Nếu lịch sử phía sau không khớp (mở từ link, F5) thì chuyển màn trực tiếp.
+
+**Kiểm thử:** `npm test` (`tests/navigation.mjs`): 9 nhóm tình huống × 2 cách mở (web, file).
+Bản trước khi sửa đạt 34/46, bản sau khi sửa đạt 46/46.
+
+**Lưu ý:** nếu bạn build `index.html` từ file nguồn trên máy, phải áp **cùng thay đổi** vào file nguồn đó;
+nếu không, lần tải lên tiếp theo sẽ ghi đè mất bản sửa.
 
 ## Chuẩn bị cho cấu phần 2 (việc của bạn)
 
