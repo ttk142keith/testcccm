@@ -1,0 +1,14 @@
+{
+  "name": "on-tap-cccm",
+  "private": true,
+  "type": "module",
+  "description": "Ôn tập Chứng chỉ Chuyên môn Chứng khoán",
+  "scripts": {
+    "extract": "node tools/extract-content.mjs",
+    "dev": "node tools/dev-server.mjs",
+    "test": "node tools/extract-content.mjs && node tests/smoke.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}
