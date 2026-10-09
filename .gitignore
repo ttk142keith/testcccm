@@ -1,0 +1,9 @@
+# Nội dung trích ra từ index.html — KHÔNG commit: nội dung trả phí không được nằm ở nơi công khai
+/content/
+# Thư viện và kết quả kiểm thử
+node_modules/
+/tests/screenshots/
+# Bí mật (khoá API, mật khẩu database...) — tuyệt đối không commit
+.env
+.env.*
+*.pem

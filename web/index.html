@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%2300A54C'/%3E%3C/svg%3E">
+<title>Ôn tập Chứng chỉ Chuyên môn Chứng khoán · VDSC</title>
+<link rel="stylesheet" href="css/app.css">
+<script src="js/theme-early.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="top-main">
+      <h1>🎓 Ôn tập Chứng chỉ Chuyên môn Chứng khoán</h1>
+      <p>Hệ thống ôn luyện các môn thi chứng chỉ chuyên môn về chứng khoán (UBCKNN/SRTC)</p>
+      <div class="stripe" id="homeStripe"></div>
+    </div>
+    <div id="hdrActions">
+      <!-- nút Đăng xuất được chèn vào đây sau khi đăng nhập -->
+      <button id="themeBtn" class="hdr-btn is-icon" type="button" title="Chuyển giao diện sáng/tối" aria-label="Chuyển giao diện sáng/tối"><span class="ico"></span></button>
+    </div>
+  </header>
+
+  <!-- ========== HOME: chọn môn ========== -->
+  <section id="home">
+    <h2 class="sec">Chọn môn học</h2>
+    <div class="subgrid" id="subGrid"></div>
+    <div class="card">
+      <h3 style="margin:0 0 8px">💾 Đồng bộ tiến độ giữa các máy</h3>
+      <p style="font-size:13.5px;color:var(--muted);margin:0 0 12px">Tải tiến độ học (lịch sử thi, thống kê, đánh dấu, đáp án tự sửa của <b>tất cả các môn</b>) ra file để mang sang máy khác, rồi nhập lại file đó trên máy mới.</p>
+      <div class="io-row">
+        <button class="btn btn-pri" id="exportBtn">⬇️ Xuất tiến độ ra file</button>
+        <button class="btn btn-sec" id="importBtn">⬆️ Nhập tiến độ từ file</button>
+        <input type="file" id="importFile" accept=".json,application/json" style="display:none">
+        <button class="btn btn-ghost" id="resetAllBtn">🗑️ Xóa toàn bộ tiến độ</button>
+      </div>
+    </div>
+    <div class="card" id="fbCard"></div>
+  </section>
+
+  <!-- ========== SUBJECT VIEW ========== -->
+  <section id="subject" style="display:none">
+    <div class="subj-head">
+      <button class="backbtn" style="margin:0" onclick="closeSubject()">← Chọn môn khác</button>
+      <h2 id="subjTitle"></h2>
+    </div>
+    <div class="stripe" id="stripe" style="margin:0 0 6px"></div>
+    <div id="aiBankNote"></div>
+
+    <nav class="tabs" id="tabs">
+      <button data-tab="hoc" class="active">📖 Khái niệm</button>
+      <button data-tab="luyen">📝 Luyện đề</button>
+      <button data-tab="thi">🎯 Thi thử</button>
+      <button data-tab="tiendo">📊 Tiến độ</button>
+    </nav>
+
+    <!-- HOC -->
+    <section id="hoc" class="panel show">
+      <h2 class="sec" id="hocTitle">Học tập khái niệm</h2>
+      <div id="chapList"></div>
+    </section>
+
+    <!-- LUYEN -->
+    <section id="luyen" class="panel">
+      <h2 class="sec">Luyện đề theo chủ đề</h2>
+      <div id="resumeBanner"></div>
+      <div id="weakFocusBar"></div>
+      <div class="controls">
+        <select id="fTopic"></select>
+        <select id="fConf">
+          <option value="">Mọi độ tin cậy</option>
+          <option value="high">Tin cậy cao</option>
+          <option value="medium">Trung bình</option>
+          <option value="low">Cần kiểm tra</option>
+        </select>
+        <input type="text" id="fSearch" placeholder="Tìm trong câu hỏi / phương án…">
+        <label style="display:flex;gap:6px;align-items:center;background:var(--vds-surface);color:var(--ink);border:1px solid var(--vds-border);border-radius:var(--vds-radius-6);padding:8px 12px;font-size:13px">
+          <input type="checkbox" id="fBookmark"> ★ Đã đánh dấu
+        </label>
+        <span class="count-pill" id="luyenCount"></span>
+      </div>
+      <div class="controls">
+        <button class="btn btn-sec" id="revealAll">Hiện tất cả đáp án</button>
+        <button class="btn btn-ghost" id="hideAll">Ẩn đáp án</button>
+      </div>
+      <div id="qList"></div>
+      <div style="text-align:center"><button class="btn btn-sec" id="moreBtn">Xem thêm câu hỏi</button></div>
+    </section>
+
+    <!-- THI -->
+    <section id="thi" class="panel">
+      <div id="examResumeBar"></div>
+      <div class="card exam-hero" id="examIntro">
+        <h2>🎯 Thi thử</h2>
+        <p>Đề được rút ngẫu nhiên phân bổ đều theo chủ đề. Làm xong bấm "Nộp bài" để chấm điểm và xem lại từng câu.</p>
+        <div class="setting-row">
+          <label>Số câu <input type="number" id="exNum" value="50" min="5" max="200" style="width:70px"></label>
+          <label>Ngưỡng đạt (%) <input type="number" id="exPass" value="70" min="1" max="100" style="width:70px"></label>
+          <label>Phút <input type="number" id="exMin" value="60" min="5" max="240" style="width:70px"></label>
+          <label><input type="checkbox" id="exTimer" checked> Bấm giờ</label>
+        </div>
+        <button class="btn btn-pri" id="startExam" style="padding:13px 34px;font-size:16px">Bắt đầu thi</button>
+      </div>
+      <div id="examRun" style="display:none"></div>
+      <div id="examResult" style="display:none"></div>
+    </section>
+
+    <!-- TIENDO -->
+    <section id="tiendo" class="panel">
+      <h2 class="sec">Tiến độ môn học</h2>
+      <div class="statgrid" id="statGrid"></div>
+      <div class="card"><h3 style="margin:0 0 10px">📜 Lịch sử thi thử</h3><div id="histWrap"></div></div>
+      <div class="card"><div class="weak-head"><h3 style="margin:0">❗ Câu hay sai nhất</h3><button class="btn btn-pri" id="weakRedoBtn" style="display:none" onclick="startWeakReview()">🔄 Luyện lại các câu này</button></div><div id="weakWrap"></div></div>
+      <div class="controls">
+        <button class="btn btn-ghost" id="resetBtn">🗑️ Xóa tiến độ môn này</button>
+      </div>
+    </section>
+  </section>
+</div>
+<div id="modalHost"></div>
+<div id="toast"></div>
+
+<script src="js/content.js"></script>
+<script src="js/app.js"></script>
+<script src="js/auth-legacy.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/boot.js"></script>
+</body>
+</html>
