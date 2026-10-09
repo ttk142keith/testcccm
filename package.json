@@ -4,7 +4,7 @@
   "type": "module",
   "description": "Ôn tập Chứng chỉ Chuyên môn Chứng khoán",
   "scripts": {
-    "test": "node tests/navigation.mjs",
+    "test": "node tests/navigation.mjs && node tests/storage.mjs",
     "test:web": "node tools/extract-content.mjs && node tests/smoke.mjs",
     "extract": "node tools/extract-content.mjs",
     "dev": "node tools/dev-server.mjs"

@@ -128,8 +128,12 @@ Con số này lấy từ một hàm **chỉ trả về số đếm, không trả
 
 ### 6. Dữ liệu người dùng lên server
 
+> **Lưu ý 2026-10-09:** hiện tài khoản dùng chung nên tiến độ đang lưu **theo thiết bị** (xem `docs/BRIEF-SUA-LOI.md` mục C).
+> Chỉ đồng bộ tiến độ lên server theo tài khoản **sau khi** mỗi người có tài khoản riêng (đăng nhập Google, cấu phần 3).
+> Nếu đồng bộ khi tài khoản còn dùng chung, tiến độ của nhiều người sẽ trộn vào nhau.
+
 Thay ruột của object `LS` (25 lời gọi đều đi qua đây) bằng "bộ đệm trên máy + đồng bộ lên server".
-Sửa luôn 3 lỗi hiện có: 2 người dùng chung máy bị lẫn tiến độ; đáp án admin sửa chỉ hiện trên máy admin;
+Sửa luôn 2 lỗi hiện có: đáp án admin sửa chỉ hiện trên máy admin;
 góp ý báo "đã gửi" mà không chắc đã tới nơi.
 Người dùng cũ: Xuất tiến độ ra file từ bản cũ → Nhập vào bản mới → tự đồng bộ lên tài khoản.
 

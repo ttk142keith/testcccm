@@ -8,7 +8,7 @@ Kiểm tra trên bản `index.html` build 2026-10-07. Số dòng có thể khác
 | B1 | "Nguồn" của câu hỏi chèn vào trang mà không qua `esc()` | Trung bình (bảo mật) | Chưa sửa |
 | B2 | `esc()` không mã hoá dấu `"` và `'` | Thấp (lỗi chờ sẵn) | Chưa sửa |
 | B3 | Góp ý báo "đã gửi" dù có thể chưa tới nơi | Trung bình | Chưa sửa |
-| C | Lưu tiến độ theo từng tài khoản (`nsKey`) | Chỉ cần kiểm tra | Bản 07/10 **đã có**; xem các bản khác có chưa |
+| C | Tiến độ lưu theo tài khoản trong khi tài khoản dùng chung; tiến độ trước 23/09 bị "ẩn" | **Cao** | Đã sửa trên nhánh: lưu theo thiết bị + gộp dữ liệu cũ, kiểm thử 32/32 |
 | D | Cổng đăng nhập: chỉ cần biết tên tài khoản là vào được | Giới hạn thiết kế | Không sửa được ở bản tĩnh |
 
 ---
@@ -143,9 +143,108 @@ Cần thử thật: nếu bị chặn, giữ cách cũ nhưng đổi thông báo
 
 ---
 
-## C. Kiểm tra ở các bản khác: tiến độ lưu riêng theo tài khoản
-Bản 07/10 đã có `nsKey` (khoá lưu = `cccm_` + tên tài khoản + ...). Bản nào còn khoá kiểu `'cccm_'+k`, không có tên tài khoản,
-thì 2 người đăng nhập trên cùng một máy sẽ **dùng chung tiến độ và góp ý**. Hãy chép cách làm `nsKey` từ bản 07/10 sang.
+## C. Lưu tiến độ theo THIẾT BỊ, không theo tài khoản (bắt buộc khi tài khoản dùng chung)
+
+**Quyết định:** trước mắt nhiều người dùng chung một tài khoản, nên mỗi thiết bị (máy + trình duyệt) là một vùng lưu tiến độ.
+
+**Vấn đề ở các bản từ 23/09 tới 07/10:** hàm `nsKey` thêm tên tài khoản vào khoá lưu (`cccm_<tài khoản>_...`), nên:
+- cùng một máy, đăng nhập bằng tài khoản khác là **mất dấu** tiến độ;
+- tiến độ học từ **trước 23/09** (khoá không có tên tài khoản) vẫn nằm trên máy nhưng app **không đọc tới**, vì bản 23/09 đổi khoá mà không chuyển dữ liệu.
+
+**Cách sửa:** 2 chỗ.
+
+### C1. Thay hàm `nsKey`
+Tìm dòng bắt đầu bằng `const nsKey=k=>{const a=window.__CCCM_AUTH;` (kèm khối chú thích ngay phía trên nó), thay bằng:
+```js
+/* Tiến độ lưu theo THIẾT BỊ (mỗi máy/trình duyệt một vùng), KHÔNG theo tài khoản:
+   trước mắt tài khoản dùng chung nên thiết bị mới phản ánh đúng "một người học".
+   Dữ liệu các bản 23/09–07/10 đã lưu theo tài khoản (cccm_<tài khoản>_...) được gộp về đây khi mở app
+   (xem mergeAccountStores). Khi có tài khoản cá nhân + lưu trên máy chủ thì mới chuyển sang theo tài khoản. */
+const nsKey=k=>'cccm_'+k;
+```
+Bản nào chưa có `nsKey` (khoá kiểu `'cccm_'+k`) thì vốn đã lưu theo thiết bị: **không cần sửa C**.
+
+### C2. Thêm bước gộp dữ liệu cũ
+Dán khối sau **ngay trước** 2 dòng `applyAuth();` và `retryFeedback(true);` ở phần khởi động.
+Khối này phải chạy **sau** khi danh sách môn (`SUBJECTS`, kể cả các môn CCHN được thêm bằng `SUBJECTS.push`) đã đầy đủ.
+```js
+/* ============ gộp tiến độ "theo tài khoản" về "theo thiết bị" ============
+   Chạy mỗi lần mở app, chỉ có việc khi trên máy còn khoá dạng cccm_<tài khoản>_<khoá> (bản 23/09–07/10).
+   Gộp với dữ liệu theo thiết bị (gồm cả dữ liệu trước 23/09 mà các bản đó không đọc tới), rồi xoá khoá theo tài khoản.
+   Bản gốc giữ trong cccm_backup_tien_do_theo_tai_khoan để khôi phục nếu cần. */
+function mergeProgressPart(part,a,b){
+  if(a==null)return b; if(b==null)return a;
+  const arr=x=>Array.isArray(x)?x:[];
+  const ts=x=>x&&typeof x==='object'?Math.max(+x.ts||0,+(x.luyen&&x.luyen.ts)||0,+(x.exam&&x.exam.ts)||0):0;
+  switch(part){
+    case 'history':{                       /* hợp + bỏ trùng, mới nhất trước, tối đa 100 như app */
+      const seen=new Set(),out=[];
+      arr(a).concat(arr(b)).forEach(h=>{const k=h&&(h.date+'|'+h.correct+'|'+h.total);if(h&&!seen.has(k)){seen.add(k);out.push(h);}});
+      return out.sort((x,y)=>(y.date||0)-(x.date||0)).slice(0,100);}
+    case 'stats':{                         /* mỗi vùng là những lần làm khác nhau -> cộng dồn */
+      const o=Object.assign({},a);
+      Object.keys(b||{}).forEach(id=>{const x=o[id]||{},y=b[id]||{};
+        o[id]={seen:(x.seen||0)+(y.seen||0),correct:(x.correct||0)+(y.correct||0),wrong:(x.wrong||0)+(y.wrong||0)};});
+      return o;}
+    case 'overrides':return Object.assign({},a,b);
+    case 'bookmarks':case 'marks':return [...new Set(arr(a).concat(arr(b)))];
+    case 'feedback':{const m=new Map();arr(a).concat(arr(b)).forEach(i=>{if(i&&i.id&&!m.has(i.id))m.set(i.id,i);});
+      return [...m.values()].sort((x,y)=>(y.ts||0)-(x.ts||0));}
+    case 'resume':case 'session':return ts(b)>ts(a)?b:a;   /* lấy bản mới nhất */
+    default:return b;                       /* lastProgram, luyenView, discCollapsed */
+  }
+}
+function mergeAccountStores(){
+  let ls;try{ls=window.localStorage;if(!ls)return;}catch(e){return;}
+  const sids=new Set(SUBJECTS.map(x=>x.id)),rests=new Set(['feedback','lastProgram','luyenView','discCollapsed']);
+  sids.forEach(sid=>PROG_KEYS.concat('marks').forEach(p=>rests.add(sid+'_'+p)));
+  const found={};
+  for(let i=0;i<ls.length;i++){
+    const key=ls.key(i);if(!key||key.indexOf('cccm_')!==0)continue;
+    const body=key.slice(5);
+    for(let j=body.indexOf('_');j>0;j=body.indexOf('_',j+1)){   /* tên tài khoản có thể chứa "_" */
+      const user=body.slice(0,j),rest=body.slice(j+1);
+      if(rests.has(rest)&&!sids.has(user)&&!rests.has(user)){(found[rest]=found[rest]||[]).push(key);break;}
+    }
+  }
+  const restKeys=Object.keys(found);if(!restKeys.length)return;
+  try{   /* sao lưu bản gốc trước khi đụng vào; không sao lưu được thì thôi, không gộp */
+    const BK='cccm_backup_tien_do_theo_tai_khoan';
+    const bk=JSON.parse(ls.getItem(BK)||'{"data":{}}');bk.at=bk.at||Date.now();bk.data=bk.data||{};
+    restKeys.forEach(r=>['cccm_'+r].concat(found[r]).forEach(k=>{const v=ls.getItem(k);if(v!=null&&!(k in bk.data))bk.data[k]=v;}));
+    ls.setItem(BK,JSON.stringify(bk));
+  }catch(e){console.warn('Không sao lưu được, bỏ qua bước gộp tiến độ',e);return;}
+  const J=k=>{try{return JSON.parse(ls.getItem(k));}catch(e){return undefined;}};   /* undefined = không đọc được */
+  restKeys.forEach(r=>{
+    const part=r.slice(r.lastIndexOf('_')+1),done=[];
+    let v=J('cccm_'+r);if(v===undefined)v=null;
+    found[r].forEach(k=>{const x=J(k);if(x===undefined)return;   /* không đọc được: để nguyên, không xoá */
+      v=mergeProgressPart(part,v,x);done.push(k);});
+    try{if(v!=null)ls.setItem('cccm_'+r,JSON.stringify(v));done.forEach(k=>ls.removeItem(k));}
+    catch(e){console.warn('Không gộp được',r,e);}
+  });
+}
+mergeAccountStores();
+```
+Cách gộp từng loại dữ liệu:
+
+| Dữ liệu | Cách gộp |
+|---|---|
+| Thống kê đúng/sai từng câu | **Cộng dồn**: mỗi vùng là những lần làm khác nhau nên không bị đếm trùng |
+| Lịch sử thi | Hợp lại, bỏ trùng, mới nhất trước, tối đa 100 như app |
+| Đánh dấu ★, mốc số đã thuộc, góp ý | Hợp lại, bỏ trùng |
+| "Học tiếp", phiên/bài thi đang làm dở | Lấy bản mới nhất |
+| Đáp án admin đã sửa | Hợp lại; trùng câu thì lấy theo tài khoản |
+| Kỳ thi chọn lần trước, kiểu hiển thị | Lấy theo tài khoản |
+
+An toàn dữ liệu: trước khi gộp, toàn bộ dữ liệu gốc được sao vào `cccm_backup_tien_do_theo_tai_khoan`. Không sao lưu được thì không gộp.
+Giá trị hỏng (không đọc được) được giữ nguyên, không xoá. Mở app nhiều lần cũng không gộp lặp.
+
+**Đánh đổi:** một máy có nhiều người dùng chung (ví dụ máy ở văn phòng) thì những người đó **dùng chung tiến độ**.
+Muốn mỗi người một tiến độ trên cùng máy, mỗi người dùng một trình duyệt hoặc một hồ sơ (profile) trình duyệt riêng.
+
+**Kiểm thử:** `node tests/storage.mjs <file.html>` dựng sẵn dữ liệu cũ cùng dữ liệu của 2 tài khoản trên một máy, rồi kiểm tra kết quả gộp,
+bản sao lưu, việc mở app nhiều lần và việc đổi tài khoản. Bản 07/10 đạt 4/32, bản đã sửa đạt 32/32.
 
 ## D. Giới hạn cổng đăng nhập (không sửa được ở bản tĩnh)
 Khi khôi phục phiên, app chỉ kiểm tra **tên tài khoản** trong `sessionStorage`. Ai biết tên (tên đang nằm trong file)
