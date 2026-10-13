@@ -97,6 +97,50 @@ await group('#1. Nhập file TIẾN ĐỘ có kèm góp ý: cũng lọc góp ý 
   return s;
 });
 
+/* Vào kỳ thi `prog` → môn `subj` → tab `tab` */
+async function openTab(p, prog, subj, tab) {
+  if (await p.locator('#homeCrumb .backbtn').isVisible()) { await p.locator('#homeCrumb .backbtn').click(); await settle(p); }
+  await p.locator('.progcard', { hasText: prog }).click(); await settle(p);
+  await p.locator('#subGrid .subj', { hasText: subj }).click(); await settle(p);
+  await p.locator(`#tabs button[data-tab="${tab}"]`).click(); await settle(p);
+}
+
+await group('#4. Luyện đề: mỗi lượt làm 1 câu chỉ được tính thống kê 1 lần', async () => {
+  const s = await open('tuan.nt'); const { p } = s;
+  await openTab(p, 'CCCM', 'Cơ bản', 'luyen');
+  const stat = async id => JSON.stringify(((await read(p, 'cccm_coban_stats')) || {})[id] || null);
+  const ids = await p.locator('#qList .q').evaluateAll(els => els.slice(0, 2).map(e => +e.dataset.id));
+  const [id1, id2] = ids;
+  const ans1 = await p.evaluate(id => ansOf(DB.find(q => q.id === id)), id1);
+  const wrong1 = await p.evaluate(([id, a]) => DB.find(q => q.id === id).options.map(o => o.key).filter(k => k !== a), [id1, ans1]);
+  /* force: phương án đã khoá có aria-disabled, Playwright mặc định không bấm; người dùng thật vẫn bấm được */
+  const opt = (id, k) => ({ click: () => p.locator(`#qList .q[data-id="${id}"] .opt[data-k="${k}"]`).click({ force: true }) });
+
+  await opt(id1, wrong1[0]).click(); await opt(id1, ans1).click(); await opt(id1, wrong1[1]).click(); await settle(p);
+  check(await stat(id1) === '{"seen":1,"correct":0,"wrong":1}', `chọn sai, rồi bấm tiếp đáp án đúng và 1 phương án khác → chỉ tính lần đầu: ${await stat(id1)}`);
+  check(await p.evaluate(id => sess().luyen.picked[id], id1) === wrong1[0], 'giữ lựa chọn đầu tiên');
+  check(await p.locator(`#qList .q[data-id="${id1}"]`).evaluate(e => e.classList.contains('answered')), 'các phương án bị khoá sau khi chọn');
+
+  await p.locator(`#qList .q[data-id="${id2}"] .qfoot .btn`).first().click();   // "Hiện đáp án"
+  await opt(id2, 'a').click(); await settle(p);
+  check(await stat(id2) === 'null', `bấm "Hiện đáp án" rồi mới chọn → không tính: ${await stat(id2)}`);
+
+  await p.locator('#hideAll').click(); await settle(p);
+  check(!(await p.locator(`#qList .q[data-id="${id1}"]`).evaluate(e => e.classList.contains('answered'))), '"Ẩn đáp án" mở khoá các phương án');
+  await opt(id1, wrong1[0]).click(); await settle(p);
+  check(await stat(id1) === '{"seen":2,"correct":0,"wrong":2}', `sau "Ẩn đáp án", làm lại → tính thêm 1 lượt: ${await stat(id1)}`);
+
+  await p.reload(); await p.waitForTimeout(500);
+  await opt(id1, ans1).click(); await settle(p);
+  check(await stat(id1) === '{"seen":2,"correct":0,"wrong":2}', `mở lại app, câu vẫn đang hiện đáp án → bấm không tính: ${await stat(id1)}`);
+
+  await p.locator('#tabs button[data-tab="tiendo"]').click(); await settle(p);
+  await p.locator('#weakRedoBtn').click(); await settle(p);
+  await opt(id1, ans1).click(); await settle(p);
+  check(await stat(id1) === '{"seen":3,"correct":1,"wrong":2}', `"Luyện lại các câu này" → làm lại được tính: ${await stat(id1)}`);
+  return s;
+});
+
 await browser.close(); server.close(); rmSync(dir, { recursive: true, force: true });
 console.log(`\n${failed ? '❌' : '✅'} ${passed}/${passed + failed} kiểm tra đạt`);
 process.exit(failed ? 1 : 0);

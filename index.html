@@ -178,6 +178,9 @@ input[type=text]{min-width:220px;flex:1}
 .opt.wrong{border-color:var(--red);background:var(--vds-danger-bg)}
 .opt.wrong .k{color:var(--vds-red-text)}
 .opt.chosen{border-color:var(--vds-brand-green);box-shadow:0 0 0 2px var(--vds-focus-ring) inset}
+/* Luyện đề: đã hiện đáp án -> phương án khoá, không đổi màu khi rê chuột */
+.q.answered .opt{cursor:default}
+.q.answered .opt:not(.correct):not(.wrong):hover{border-color:var(--vds-border);background:var(--vds-surface)}
 .explain{margin-top:12px;background:var(--vds-success-bg);border-left:4px solid var(--green);border-radius:var(--vds-radius-control);padding:10px 12px;font-size:13.5px}
 .explain.lowconf{background:var(--vds-warning-bg);border-color:var(--vds-warning-strong)}
 .qfoot{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
@@ -3266,7 +3269,8 @@ function bindLuyenEvents(){
   $('#moreBtn').onclick=()=>moreLuyen();
   $('#revealAll').onclick=()=>{$$('#qList .q').forEach(el=>revealAnswer(el,true));};
   $('#hideAll').onclick=()=>{
-    $$('#qList .explain').forEach(e=>e.remove());$$('#qList .opt').forEach(o=>o.classList.remove('correct','wrong'));
+    $$('#qList .explain').forEach(e=>e.remove());$$('#qList .opt').forEach(o=>{o.classList.remove('correct','wrong');o.removeAttribute('aria-disabled');});
+    $$('#qList .q.answered').forEach(e=>e.classList.remove('answered'));   /* mở khoá để làm lại */
     if(cur&&P){const l=sess().luyen,ids=$$('#qList .q').map(el=>+el.dataset.id);
       l.revealed=l.revealed.filter(id=>!ids.includes(id));saveSession(true);}
   };
@@ -3498,11 +3502,13 @@ function renderLuyen(){
   $('#moreBtn').style.display=luyenShown<list.length?'inline-block':'none';
   if(_oneMode)oneGo(oneTargetIdx(),true);
 }
-/* chỉ tô màu + chèn giải thích, KHÔNG ghi thống kê — dùng cả khi khôi phục phiên */
+/* chỉ tô màu + chèn giải thích, KHÔNG ghi thống kê — dùng cả khi khôi phục phiên.
+   Đánh dấu .answered = các phương án đã khoá (xem revealAnswer). */
 function paintAnswer(qEl,chosen){
   const id=+qEl.dataset.id;const q=DB.find(x=>x.id===id);if(!q)return;const ans=ansOf(q);
+  qEl.classList.add('answered');
   qEl.querySelectorAll('.opt').forEach(o=>{
-    o.classList.remove('correct','wrong','chosen');
+    o.classList.remove('correct','wrong','chosen');o.setAttribute('aria-disabled','true');
     if(o.dataset.k===ans)o.classList.add('correct');
     if(chosen&&o.dataset.k===chosen&&chosen!==ans)o.classList.add('wrong');
   });
@@ -3515,6 +3521,9 @@ function paintAnswer(qEl,chosen){
 }
 function revealAnswer(qEl,silent,chosen){
   const id=+qEl.dataset.id;const q=DB.find(x=>x.id===id);if(!q)return;const ans=ansOf(q);
+  /* câu đã hiện đáp án (đã chọn 1 phương án, hoặc đã bấm "Hiện đáp án") -> phương án bị khoá, không tính thống kê lần nữa.
+     "Ẩn đáp án" và "Luyện lại các câu này" xoá câu khỏi revealed -> lượt làm lại vẫn được tính. */
+  if(chosen&&qEl.closest('#qList')&&sess().luyen.revealed.includes(id))return;
   if(chosen){
     const st=P.stats[id]||{seen:0,correct:0,wrong:0};st.seen++;chosen===ans?st.correct++:st.wrong++;
     P.stats[id]=st;saveProg('stats');
