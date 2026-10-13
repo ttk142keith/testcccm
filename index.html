@@ -3151,10 +3151,12 @@ function confBadge(c){if(c==='high')return '<span class="badge b-green">Tin cậ
   if(c==='medium')return '<span class="badge b-amber">Trung bình</span>';
   if(c==='low')return '<span class="badge b-red">Cần kiểm tra</span>';return '';}
 function vBadge(q){return q.verified?'<span class="badge b-green">Đáp án gốc</span>':'';}
-/* câu được user sửa đáp án thủ công (overrides) -> coi như tin cậy cao, đáp án gốc */
+/* câu được sửa đáp án thủ công (overrides): bộ lọc độ tin cậy vẫn coi như tin cậy cao, nhưng nhãn hiển thị là
+   "Admin đã sửa" — KHÔNG gắn "Đáp án gốc" (nhãn đó chỉ dành cho đáp án lấy từ file đáp án chính thức). */
 const hasOv=q=>!!(P&&P.overrides&&P.overrides[q.id]);
 const confOf=q=>hasOv(q)?'high':q.confidence;
-function qBadges(q){return hasOv(q)?confBadge('high')+' <span class="badge b-green">Đáp án gốc</span>':[confBadge(q.confidence),vBadge(q)].filter(Boolean).join(' ');}
+const OV_BADGE='<span class="badge b-amber">Admin đã sửa</span>';
+function qBadges(q){return hasOv(q)?OV_BADGE:[confBadge(q.confidence),vBadge(q)].filter(Boolean).join(' ');}
 function pdfHref(sub,pdf){const path=pdf.includes('/')?pdf:sub.folder+'/'+pdf;return encodeURI('./'+path);}
 
 /* ============ ghi nhớ phiên làm bài ============
@@ -3484,7 +3486,7 @@ function filteredQuestions(){
 }
 function qCardHTML(q,idx){
   const flags=[`<span class="qtopic badge b-blue">${esc(q.topic)}</span>`];
-  if(q.verified||hasOv(q))flags.push('<span class="badge b-green">Đáp án gốc</span>');
+  if(hasOv(q))flags.push(OV_BADGE);else if(q.verified)flags.push('<span class="badge b-green">Đáp án gốc</span>');
   if(q.suspect)flags.push('<span class="badge b-amber">Nghi lỗi ký tự</span>');
   if(q.legalCheck)flags.push('<span class="badge b-red">Cần đối chiếu luật hiện hành</span>');
   return `<div class="q" data-id="${q.id}">

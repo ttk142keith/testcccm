@@ -210,6 +210,23 @@ await group('#14. Trình duyệt bình thường: không hiện banner cảnh b�
   return s;
 });
 
+await group('#9. Câu đã sửa đáp án mang nhãn "Admin đã sửa", không mang nhãn "Đáp án gốc"', async () => {
+  const s = await open('tuan.nt'); const { p } = s;
+  await openTab(p, 'CCCM', 'Pháp luật', 'luyen');
+  /* 2 câu đầu trang có đáp án gốc: câu A bị admin sửa đáp án, câu B giữ nguyên */
+  const [a, b] = await p.locator('#qList .q').evaluateAll(els => els.map(e => +e.dataset.id).filter(id => DB.find(q => q.id === id).verified).slice(0, 2));
+  await p.evaluate(id => { const q = DB.find(x => x.id === id); localStorage.setItem('cccm_phapluat_overrides', JSON.stringify({ [id]: { a: q.options.find(o => o.key !== q.answer).key } })); }, a);
+  await p.reload(); await p.waitForTimeout(500);   // F5: app mở lại đúng môn + tab, nạp đáp án đã sửa
+  const badges = id => p.locator(`#qList .q[data-id="${id}"] .qhead .badge`).allInnerTexts();
+  const ba = await badges(a), bb = await badges(b);
+  check(ba.includes('Admin đã sửa') && !ba.includes('Đáp án gốc'), `câu #${a} (đã sửa): ${JSON.stringify(ba)}`);
+  check(bb.includes('Đáp án gốc') && !bb.includes('Admin đã sửa'), `câu #${b} (không sửa) vẫn là đáp án gốc: ${JSON.stringify(bb)}`);
+  await p.locator(`#qList .q[data-id="${a}"] .qfoot .btn`).first().click(); await settle(p);
+  const ex = await p.locator(`#qList .q[data-id="${a}"] .explain`).innerText();
+  check(ex.includes('Admin đã sửa') && !ex.includes('Đáp án gốc') && !ex.includes('Tin cậy cao'), `phần đáp án của câu đã sửa: "${ex.split('\n')[0]}"`);
+  return s;
+});
+
 await browser.close(); server.close(); rmSync(dir, { recursive: true, force: true });
 console.log(`\n${failed ? '❌' : '✅'} ${passed}/${passed + failed} kiểm tra đạt`);
 process.exit(failed ? 1 : 0);
