@@ -3097,16 +3097,30 @@ const PROG_KEYS=['history','stats','overrides','bookmarks','resume','session'];
    Dữ liệu các bản 23/09–07/10 đã lưu theo tài khoản (cccm_<tài khoản>_...) được gộp về đây khi mở app
    (xem mergeAccountStores). Khi có tài khoản cá nhân + lưu trên máy chủ thì mới chuyển sang theo tài khoản. */
 const nsKey=k=>'cccm_'+k;
+/* Trình duyệt chặn lưu dữ liệu (chặn cookie/dữ liệu trang web) hoặc bộ nhớ đã đầy: app vẫn chạy
+   nhưng không lưu được tiến độ -> hiện banner 1 lần dưới header. Gọi được trước khi có $() và trước khi đăng nhập. */
+function storageFail(e){
+  if(document.getElementById('storageWarn'))return;
+  console.warn('Không lưu được dữ liệu vào trình duyệt',e);
+  const d=document.createElement('div');d.id='storageWarn';d.className='disclaimer';d.setAttribute('role','alert');
+  d.innerHTML='<span>⚠️</span><div><b>Trình duyệt đang chặn lưu dữ liệu</b> (hoặc bộ nhớ đã đầy) — tiến độ học lần này sẽ <b>không được lưu lại</b>. '
+    +'Hãy cho phép trang này lưu dữ liệu (cookie và dữ liệu trang web) trong cài đặt trình duyệt, hoặc mở bằng Chrome/Edge.</div>';
+  const w=document.querySelector('.wrap'),h=w&&w.querySelector('header');
+  if(w)w.insertBefore(d,h?h.nextSibling:w.firstChild);
+}
 const LS={
   get:(k,d)=>{try{return JSON.parse(localStorage.getItem(nsKey(k)))??d}catch(e){return d}},
-  set:(k,v)=>localStorage.setItem(nsKey(k),JSON.stringify(v)),
-  del:k=>localStorage.removeItem(nsKey(k))
+  set:(k,v)=>{try{localStorage.setItem(nsKey(k),JSON.stringify(v));}catch(e){storageFail(e);}},
+  del:k=>{try{localStorage.removeItem(nsKey(k));}catch(e){storageFail(e);}}
 };
-/* migrate v1 (single-subject) keys -> coban */
+/* migrate v1 (single-subject) keys -> coban; đồng thời thử ghi 1 lần để báo ngay nếu bị chặn */
 (function(){
-  if(localStorage.getItem('cccm_history')&&!localStorage.getItem('cccm_coban_history')){
-    PROG_KEYS.forEach(k=>{const v=localStorage.getItem('cccm_'+k);if(v!==null)localStorage.setItem('cccm_coban_'+k,v);});
-  }
+  try{
+    if(localStorage.getItem('cccm_history')&&!localStorage.getItem('cccm_coban_history')){
+      PROG_KEYS.forEach(k=>{const v=localStorage.getItem('cccm_'+k);if(v!==null)localStorage.setItem('cccm_coban_'+k,v);});
+    }
+    localStorage.setItem('cccm__probe','1');localStorage.removeItem('cccm__probe');
+  }catch(e){storageFail(e);}
 })();
 function saveProg(part){LS.set(cur.id+'_'+part,P[part]);}
 

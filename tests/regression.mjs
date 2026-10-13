@@ -27,6 +27,7 @@ async function open(user, init) {
   if (user) await ctx.addInitScript(u => { try { sessionStorage.setItem('cccm_auth', JSON.stringify({ u })); } catch {} }, user);
   const p = await ctx.newPage(); p.setDefaultTimeout(5000);
   const errors = [];
+  opened.push({ ctx, errors });
   p.on('pageerror', e => errors.push(e.message));
   p.on('dialog', d => d.accept());
   await p.goto(`http://127.0.0.1:${server.address().port}/index.html`); await p.waitForTimeout(400);
@@ -34,14 +35,15 @@ async function open(user, init) {
 }
 const read = (p, k) => p.evaluate(k => JSON.parse(localStorage.getItem(k)), k);
 
+let opened = [];   // các trình duyệt mở trong nhóm đang chạy: luôn được kiểm tra lỗi JS rồi đóng, kể cả khi nhóm dừng giữa chừng
 async function group(title, fn) {
   console.log(`   ${title}`);
-  let s = null;
-  try { s = await fn(); }
+  opened = [];
+  try { await fn(); }
   catch (e) { check(false, 'dừng giữa chừng: ' + e.message.split('\n')[0]); }
-  if (s) {
-    if (s.errors.length) check(false, 'lỗi JavaScript: ' + [...new Set(s.errors)].join(' | '));
-    await s.ctx.close();
+  for (const { ctx, errors } of opened) {
+    if (errors.length) check(false, 'lỗi JavaScript: ' + [...new Set(errors)].join(' | '));
+    await ctx.close();
   }
 }
 
@@ -157,6 +159,54 @@ await group('#13. Thi thử: số phút được kẹp trong 5–240 như số c
   check(m2 === 240, `nhập 999 phút → tối đa 240 (còn: ${m2})`);
   const m3 = await start(45);
   check(m3 === 45, `nhập 45 phút → giữ nguyên (còn: ${m3})`);
+  return s;
+});
+
+/* Mô phỏng trình duyệt chặn lưu trữ: truy cập localStorage (và sessionStorage nếu `both`) ném SecurityError */
+const blockLocal = () => {
+  Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('The operation is insecure.', 'SecurityError'); } });
+};
+const blockAll = () => {
+  for (const k of ['localStorage', 'sessionStorage'])
+    Object.defineProperty(window, k, { get() { throw new DOMException('The operation is insecure.', 'SecurityError'); } });
+};
+/* Mô phỏng bộ nhớ đầy: đọc được nhưng ghi thì lỗi */
+const storageFull = () => {
+  const set = Storage.prototype.setItem;
+  Storage.prototype.setItem = function (...a) {
+    if (this === window.localStorage) throw new DOMException('Quota exceeded', 'QuotaExceededError');
+    return set.apply(this, a);
+  };
+};
+
+await group('#14. Trình duyệt chặn localStorage: app vẫn chạy và báo cho người dùng', async () => {
+  const s = await open('tuan.nt', blockLocal); const { p } = s;
+  check(await p.locator('.progcard').count() === 3, `vẫn hiện màn chọn kỳ thi (${await p.locator('.progcard').count()} kỳ thi)`);
+  check(await p.locator('#storageWarn').isVisible(), 'hiện banner "trình duyệt đang chặn lưu dữ liệu"');
+  await openTab(p, 'CCCM', 'Cơ bản', 'luyen');
+  await p.locator('#qList .q').first().locator('.opt').first().click(); await settle(p);
+  check(await p.locator('#qList .q').first().locator('.explain').count() === 1, 'vẫn làm bài được (chọn phương án → hiện đáp án)');
+  return s;
+});
+
+await group('#14. Chặn cả sessionStorage, chưa đăng nhập: vẫn hiện form đăng nhập', async () => {
+  const s = await open(null, blockAll); const { p } = s;
+  check(await p.locator('#__loginGate').isVisible(), 'hiện form đăng nhập');
+  return s;
+});
+
+await group('#14. Bộ nhớ trình duyệt đầy (ghi lỗi): app vẫn chạy và báo cho người dùng', async () => {
+  const s = await open('tuan.nt', storageFull); const { p } = s;
+  check(await p.locator('#storageWarn').isVisible(), 'hiện banner cảnh báo');
+  await openTab(p, 'CCCM', 'Cơ bản', 'luyen');
+  await p.locator('#qList .q').first().locator('.opt').first().click(); await settle(p);
+  check(await p.locator('#qList .q').first().locator('.explain').count() === 1, 'vẫn làm bài được');
+  return s;
+});
+
+await group('#14. Trình duyệt bình thường: không hiện banner cảnh báo', async () => {
+  const s = await open('tuan.nt'); const { p } = s;
+  check(await p.locator('#storageWarn').count() === 0, 'không có banner');
   return s;
 });
 
