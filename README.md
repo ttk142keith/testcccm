@@ -12,6 +12,7 @@
 | `web/` | Bản mới: chỉ có giao diện, nội dung được tải qua `web/js/content.js`. Đây là thư mục sẽ đưa lên mạng. |
 | `tools/extract-content.mjs` | Tách nội dung từ `index.html` ra `content/` (không commit) và kiểm tra dữ liệu. |
 | `tools/dev-server.mjs` | Máy chủ xem thử trên máy. |
+| `docs/BRIEF-SUA-LOI-CHUNG.md` | Brief tổng quát: phát hiện và sửa 5 lỗi hay gặp ở các app tương tự. |
 | `tests/navigation.mjs` | Kiểm thử điều hướng của `index.html`: nút "← ...", Back/Tiến, tự mở lại chương, F5. |
 | `tests/storage.mjs` | Kiểm thử lưu tiến độ theo thiết bị và gộp dữ liệu cũ. |
 | `tests/smoke.mjs` | Kiểm thử bản tách `web/` so với bản cũ (cần làm lại trên bản 07/10). |
