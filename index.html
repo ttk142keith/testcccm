@@ -3593,7 +3593,7 @@ $('#startExam').onclick=()=>{
   if(!DB.length){toast('Môn này chưa có câu hỏi.');return;}
   const n=Math.min(Math.min(200,DB.length),Math.max(5,+$('#exNum').value||50));
   const pass=Math.min(100,Math.max(1,+$('#exPass').value||70));
-  const useTimer=$('#exTimer').checked, mins=+$('#exMin').value||60;
+  const useTimer=$('#exTimer').checked, mins=Math.min(240,Math.max(5,+$('#exMin').value||60));   /* 5–240 như ô nhập */
   const qs=stratifiedSample(n);
   exam={qs,answers:{},flags:{},pass,start:Date.now(),useTimer,deadline:Date.now()+mins*60000};
   $('#examIntro').style.display='none';$('#examResult').style.display='none';$('#examResumeBar').innerHTML='';

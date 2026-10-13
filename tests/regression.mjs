@@ -141,6 +141,25 @@ await group('#4. Luyện đề: mỗi lượt làm 1 câu chỉ được tính t
   return s;
 });
 
+await group('#13. Thi thử: số phút được kẹp trong 5–240 như số câu và ngưỡng đạt', async () => {
+  const s = await open('tuan.nt'); const { p } = s;
+  await openTab(p, 'CCCM', 'Cơ bản', 'thi');
+  const start = async mins => {
+    await p.evaluate(() => resetExamView());
+    await p.locator('#exNum').fill('5'); await p.locator('#exMin').fill(String(mins));
+    await p.locator('#startExam').click(); await p.waitForTimeout(1500);
+    return p.evaluate(() => exam ? Math.round((exam.deadline - Date.now()) / 60000) : 'đã nộp');
+  };
+  const m1 = await start(-5);
+  check(m1 === 5, `nhập -5 phút → bài thi 5 phút, không tự nộp ngay (còn: ${m1})`);
+  check(((await read(p, 'cccm_coban_history')) || []).length === 0, 'không ghi lượt thi 0 điểm');
+  const m2 = await start(999);
+  check(m2 === 240, `nhập 999 phút → tối đa 240 (còn: ${m2})`);
+  const m3 = await start(45);
+  check(m3 === 45, `nhập 45 phút → giữ nguyên (còn: ${m3})`);
+  return s;
+});
+
 await browser.close(); server.close(); rmSync(dir, { recursive: true, force: true });
 console.log(`\n${failed ? '❌' : '✅'} ${passed}/${passed + failed} kiểm tra đạt`);
 process.exit(failed ? 1 : 0);
