@@ -3867,7 +3867,7 @@ $('#importFile').addEventListener('change',ev=>{
       });
       if(Array.isArray(data.feedback)&&data.feedback.length){
         const list=FB.all(),have=new Set(list.map(i=>i.id));
-        data.feedback.forEach(i=>{if(i&&i.id&&!have.has(i.id)){list.push(i);have.add(i.id);}});
+        data.feedback.map(fbClean).forEach(i=>{if(i&&!have.has(i.id)){list.push(i);have.add(i.id);}});
         list.sort((a,b)=>b.ts-a.ts);FB.save(list);
       }
       renderHome();toast('Đã nhập tiến độ '+sids.length+' môn.');
@@ -3891,6 +3891,15 @@ const FB={
   save:list=>LS.set('feedback',list),
   find:id=>FB.all().find(x=>x.id===id)
 };
+/* góp ý đọc từ FILE (người khác gửi tới) là dữ liệu không tin cậy: chỉ nhận đúng định dạng app tự tạo
+   (id dạng fb…, qid số nguyên, môn có thật), các trường chữ ép về chuỗi. Không hợp lệ -> null (bỏ qua). */
+function fbClean(i){
+  if(!i||typeof i!=='object')return null;
+  const id=String(i.id||''),qid=+i.qid,str=v=>v==null?'':String(v);
+  if(!/^fb[a-z0-9]{1,30}$/i.test(id)||!Number.isInteger(qid)||!SUBJECTS.some(s=>s.id===i.sid))return null;
+  return {id,sid:i.sid,sname:str(i.sname),qid,qstem:str(i.qstem),cur:str(i.cur),sug:str(i.sug),body:str(i.body),
+    user:str(i.user),name:str(i.name),ts:+i.ts||0,sent:!!i.sent,done:!!i.done};
+}
 /* ---- hộp thoại chung ---- */
 let _modalOpener=null;   /* nút đã mở hộp thoại -> đóng xong trả focus về đó (người dùng bàn phím) */
 function closeModal(){
@@ -4051,10 +4060,10 @@ function renderFeedbackCard(){
         const d=JSON.parse(rd.result);
         if(d.app!=='OnTapCCCM-GopY'||!Array.isArray(d.items))throw new Error('format');
         const list=FB.all(),have=new Set(list.map(i=>i.id));
-        let added=0;
-        d.items.forEach(i=>{if(i&&i.id&&!have.has(i.id)){list.push(i);have.add(i.id);added++;}});
+        let added=0,bad=0;
+        d.items.forEach(x=>{const i=fbClean(x);if(!i){bad++;return;}if(!have.has(i.id)){list.push(i);have.add(i.id);added++;}});
         list.sort((a,b)=>b.ts-a.ts);FB.save(list);renderFeedbackCard();
-        toast(added?('Đã nhập '+added+' góp ý mới.'):'File không có góp ý nào mới.');
+        toast((added?('Đã nhập '+added+' góp ý mới.'):'File không có góp ý nào mới.')+(bad?' Bỏ qua '+bad+' mục sai định dạng.':''));
       }catch(e){alert('File không đúng định dạng góp ý của app này.');}
       ev.target.value='';
     };
@@ -4065,11 +4074,15 @@ function renderFeedbackCard(){
 function renderFeedbackList(){
   const el=$('#fbList');if(!el)return;
   const list=FB.all();
+  /* nút trong danh sách gọi hàm qua data-fid (không chèn id vào mã onclick: id có thể đến từ file người khác gửi) */
+  el.onclick=e=>{const b=e.target.closest('button[data-fact]');if(!b)return;
+    const fid=b.dataset.fid,act=b.dataset.fact;
+    if(act==='apply')fbApply(fid);else if(act==='done')fbToggleDone(fid);else if(act==='del')fbDelete(fid);};
   if(!list.length){el.innerHTML='';return;}
-  el.innerHTML=list.map(i=>`<div class="fb-item${i.done?' fb-done':''}">
+  el.innerHTML=list.map(i=>{const fid=esc(String(i.id)).replace(/"/g,'&quot;');return `<div class="fb-item${i.done?' fb-done':''}">
     <div class="fb-meta">
       <span class="badge b-blue">${esc(i.sname||i.sid)}</span>
-      <b>Câu #${i.qid}</b>
+      <b>Câu #${esc(String(i.qid))}</b>
       <span>đáp án app <b>${esc(i.cur||'?')})</b> → đề xuất <b>${i.sug?esc(i.sug)+')':'(không nêu)'}</b></span>
       ${isAdmin()?`<span>· ${esc(i.name||i.user||'')}</span>`:''}
       <span>· ${new Date(i.ts).toLocaleString('vi-VN')}</span>
@@ -4078,11 +4091,11 @@ function renderFeedbackList(){
     </div>
     <div class="fb-body">${esc(i.body||'(không có nội dung)')}</div>
     <div class="fb-act">
-      ${isAdmin()&&i.sug&&!i.done?`<button class="btn-mini" onclick="fbApply('${i.id}')">✔ Áp thành đáp án ${esc(i.sug)})</button>`:''}
-      ${isAdmin()?`<button class="btn-mini" onclick="fbToggleDone('${i.id}')">${i.done?'↩ Bỏ đánh dấu':'☑ Đã xử lý'}</button>`:''}
-      <button class="btn-mini" onclick="fbDelete('${i.id}')">🗑️ Xoá</button>
+      ${isAdmin()&&i.sug&&!i.done?`<button class="btn-mini" data-fact="apply" data-fid="${fid}">✔ Áp thành đáp án ${esc(i.sug)})</button>`:''}
+      ${isAdmin()?`<button class="btn-mini" data-fact="done" data-fid="${fid}">${i.done?'↩ Bỏ đánh dấu':'☑ Đã xử lý'}</button>`:''}
+      <button class="btn-mini" data-fact="del" data-fid="${fid}">🗑️ Xoá</button>
     </div>
-  </div>`).join('');
+  </div>`;}).join('');
 }
 function fbToggleDone(fid){
   const list=FB.all(),it=list.find(x=>x.id===fid);if(!it)return;

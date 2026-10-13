@@ -14,6 +14,7 @@
 | `tools/dev-server.mjs` | Máy chủ xem thử trên máy. |
 | `tests/navigation.mjs` | Kiểm thử điều hướng của `index.html`: nút "← ...", Back/Tiến, tự mở lại chương, F5. |
 | `tests/storage.mjs` | Kiểm thử lưu tiến độ theo thiết bị và gộp dữ liệu cũ. |
+| `tests/regression.mjs` | Kiểm thử hồi quy cho các lỗi đã sửa sau đợt review 10/2026 (mỗi nhóm ghi số lỗi). |
 | `tests/smoke.mjs` | Kiểm thử bản tách `web/` so với bản cũ (cần làm lại trên bản 07/10). |
 
 ## Lệnh
@@ -22,5 +23,5 @@
 npm install
 npm run extract   # sinh content/ từ index.html
 npm run dev       # xem thử: http://localhost:8080/web/
-npm test          # kiểm thử điều hướng + lưu tiến độ của index.html
+npm test          # kiểm thử điều hướng + lưu tiến độ + hồi quy của index.html
 ```
