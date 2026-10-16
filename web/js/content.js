@@ -24,7 +24,10 @@ const Content={
     if(!this._pending[sid]){
       this._pending[sid]=fetch(CONTENT_BASE+encodeURIComponent(sid)+'.json',{cache:'no-cache'})
         .then(r=>{if(!r.ok)throw new Error('Không tải được môn '+sid+' (HTTP '+r.status+')');return r.json();})
-        .then(d=>{this._cache[sid]=d;return d;})
+        .then(d=>{
+          /* Ẩn câu có cờ hidden: đề lỗi, chờ tài liệu gốc (giống index.html) */
+          if(Array.isArray(d.questions))d.questions=d.questions.filter(q=>!q.hidden);
+          this._cache[sid]=d;return d;})
         .finally(()=>{delete this._pending[sid];});
     }
     return this._pending[sid];
