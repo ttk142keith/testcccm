@@ -714,6 +714,7 @@ details.data-box .db-in>.card{box-shadow:none;margin-bottom:14px}
           </div>
         </div>
         <div class="card" id="fbCard"></div>
+        <div class="card" id="ovCard" style="display:none"></div>
       </div>
     </details>
   </section>
@@ -4384,6 +4385,7 @@ function renderFeedbackCard(){
     rd.readAsText(f,'utf-8');
   });
   renderFeedbackList();
+  renderOvCard();
 }
 function renderFeedbackList(){
   const el=$('#fbList');if(!el)return;
@@ -4432,6 +4434,88 @@ function fbApply(fid){
   const list=FB.all(),x=list.find(y=>y.id===fid);if(x)x.done=true;FB.save(list);
   renderFeedbackList();
   toast('Đã đặt đáp án '+it.sug+') cho câu #'+it.qid+' — môn '+sub.name);
+}
+
+/* ============ admin: xuất chỉnh sửa đáp án ra file để nạp vào nguồn (12/11/2026) ============
+   Chỉnh sửa bằng nút ✎ chỉ nằm trong localStorage của máy đang dùng. Thẻ #ovCard (chỉ admin thấy)
+   gom mọi chỉnh sửa KHÁC dữ liệu trong file, xuất ra JSON app:'OnTapCCCM-ChinhSua' để nạp vào
+   index.html nguồn bằng _BaoMat\nap-chinh-sua\nap-chinh-sua.pl. Chỉnh sửa đã trùng file thì dọn được. */
+function ovSrc(sid,id){
+  const Q=(typeof CCHNQLQ!=='undefined'&&CCHNQLQ)||{};
+  if(sid==='cchn-luat')return {store:'CCHN',key:'luatQuestions',id:id};
+  if(sid==='cchn-chuyenmon')return {store:'CCHN',key:'cmQuestions',id:id};
+  if(sid==='cchnqlq-luat'){
+    if(((Q.luat&&Q.luat.add)||[]).some(q=>q.id===id))return {store:'CCHNQLQ',key:'luat.add',id:id};
+    return {store:'CCHN',key:'luatQuestions',id:id,shared:'cchn-luat'};
+  }
+  if(sid==='cchnqlq-cm'){
+    const m=(Q.cmImport||[]).find(x=>x.newId===id);
+    if(m)return {store:'DATA',sid:m.from,id:m.id,via:'cmImport',patched:!!(m.patch&&('answer' in m.patch||'answerNote' in m.patch))};
+    return {store:'DATA',sid:'quanlyquy',id:id,shared:'quanlyquy'};
+  }
+  return {store:'DATA',sid:sid,id:id};
+}
+function ovCollect(){
+  const out={pending:[],same:[],orphan:[]};
+  SUBJECTS.forEach(s=>{
+    const ov=LS.get(s.id+'_overrides',{})||{};
+    const bank=(DATA[s.id]&&DATA[s.id].questions)||[];
+    Object.keys(ov).forEach(k=>{
+      const v=ov[k],q=bank.find(x=>String(x.id)===k);
+      if(!q){out.orphan.push({sid:s.id,key:k});return;}
+      const a=(typeof v==='string')?v:((v&&v.a)||q.answer);
+      const note=(v&&typeof v==='object'&&v.note)?v.note:null;
+      const it={sid:s.id,sname:s.name,qid:q.id,stem:q.stem,fileAnswer:q.answer,fileNote:q.answerNote||'',
+        answer:a,note:note,src:ovSrc(s.id,q.id)};
+      const same=a===q.answer&&(note===null||note.trim()===(q.answerNote||'').trim());
+      (same?out.same:out.pending).push(it);
+    });
+  });
+  return out;
+}
+function ovExport(){
+  if(!isAdmin())return;
+  const c=ovCollect();
+  if(!c.pending.length){toast('Không có chỉnh sửa nào khác dữ liệu trong file.');return;}
+  const data={app:'OnTapCCCM-ChinhSua',version:1,build:(typeof META!=='undefined'?META.build:''),
+    exportedAt:new Date().toISOString(),user:AUTH.user,name:AUTH.name,items:c.pending};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const u=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=u;a.download='chinh-sua-dap-an-'+new Date().toISOString().slice(0,10)+'.json';a.click();
+  URL.revokeObjectURL(u);toast('Đã xuất '+c.pending.length+' chỉnh sửa ra file.');
+}
+function ovCleanSame(){
+  if(!isAdmin())return;
+  const c=ovCollect(),drop=c.same.map(i=>[i.sid,String(i.qid)]).concat(c.orphan.map(i=>[i.sid,i.key]));
+  if(!drop.length)return;
+  if(!confirm('Xoá '+drop.length+' chỉnh sửa đã trùng dữ liệu trong file (hoặc câu không còn tồn tại)? Đáp án hiển thị không thay đổi.'))return;
+  const by={};drop.forEach(([sid,k])=>{(by[sid]=by[sid]||[]).push(k);});
+  Object.keys(by).forEach(sid=>{
+    const ov=LS.get(sid+'_overrides',{})||{};by[sid].forEach(k=>{delete ov[k];});
+    LS.set(sid+'_overrides',ov);
+    if(cur&&cur.id===sid&&P)P.overrides=ov;
+  });
+  renderOvCard();toast('Đã dọn '+drop.length+' chỉnh sửa.');
+}
+function renderOvCard(){
+  const el=$('#ovCard');if(!el)return;
+  if(!isAdmin()){el.style.display='none';el.innerHTML='';return;}
+  el.style.display='';
+  const c=ovCollect(),n=c.pending.length,m=c.same.length+c.orphan.length;
+  let h=`<h3 style="margin:0 0 8px">✎ Chỉnh sửa đáp án trên máy này</h3>
+  <p style="font-size:13.5px;color:var(--muted);margin:0 0 12px">Đáp án và chú thích sửa bằng nút <b>✎ Sửa đáp án</b> chỉ lưu trên trình duyệt này — máy khác không thấy. Muốn mọi người thấy: bấm <b>Xuất file chỉnh sửa</b> và gửi file để nạp vào bản phát hành mới. Sau khi bản mới lên, bấm <b>Dọn</b> để gỡ các chỉnh sửa đã có trong file.</p>
+  <div class="io-row">
+    <span class="count-pill">${n} chỉnh sửa chưa có trong file</span>
+    ${n?'<button type="button" class="btn btn-pri" id="ovExportBtn">⬇️ Xuất file chỉnh sửa</button>':''}
+    ${m?`<button type="button" class="btn btn-ghost" id="ovCleanBtn">🧹 Dọn ${m} chỉnh sửa đã có trong file</button>`:''}
+  </div>`;
+  if(n)h+='<div style="margin-top:12px">'+c.pending.map(i=>`<div class="fb-item"><div class="fb-meta">
+      <span class="badge b-blue">${esc(i.sname)}</span><b>Câu #${i.qid}</b>
+      <span>đáp án file <b>${esc(i.fileAnswer)})</b>${i.answer!==i.fileAnswer?` → <b>${esc(i.answer)})</b>`:''}${i.note!==null&&i.note.trim()!==i.fileNote.trim()?' · <span class="badge b-amber">sửa chú thích</span>':''}</span>
+    </div><div class="fb-body">${esc(String(i.stem||'').slice(0,140))}${String(i.stem||'').length>140?'…':''}</div></div>`).join('')+'</div>';
+  el.innerHTML=h;
+  const on=(sel,fn)=>{const b=$(sel);if(b)b.onclick=fn;};
+  on('#ovExportBtn',ovExport);on('#ovCleanBtn',ovCleanSame);
 }
 
 /* ============ keyboard activation for role=button divs/li ============ */
@@ -5272,8 +5356,8 @@ gopVeThietBi();   /* gộp dữ liệu lưu theo tài khoản (23/09–13/10) v�
 applyAuth();
 retryFeedback(true);
 /* ================= CỔNG ĐĂNG NHẬP (tự động chèn bởi capnhat-taikhoan.ps1) ================= */
-const AUTH_SALT="d627c339996898d6e4f09a86f61303b6";
-const ACCOUNTS=[{"u":"tuan.nt","h":"dcb1b78bd54c780455cdd5820332ef4c7c87e63b66df4e669d0cdec78cdf354f","n":"Nguyền Trần Tuấn","e":"","r":"user"},{"u":"thanh.nnt","h":"e9bfed07e933794ade026d142b728c747c4047cd41091f0a19c5c5cf09418991","n":"Nguyễn Ngọc Trang Thanh","e":"","r":"user"},{"u":"kiet.tt","h":"9a75dae0dc3f5ddaf9e9ba13fe6703d9673baae2745ffc0326e7b95267563ad8","n":"Tuấn Kiệt","e":"","r":"admin"},{"u":"tuyet.bt","h":"12fbfd8f24f2fd8b27c70ededb6fa03cd8bfeccabe428a2fbe3d242396830524","n":"Bùi Thị Tuyết","e":"","r":"user"},{"u":"maianh","h":"a458ad3f1eac75dc7e0665c18194765955becc5aeba9aac49251eb79fb5e120e","n":"Nguyễn Thị Mai Anh","e":"","r":"user"},{"u":"ngocthao","h":"fb6200dac949fa34c73bfc52277934e7d108980dffeec3189b11df6146bfece8","n":"Ngọc Thảo","e":"","r":"user"},{"u":"thukhoa100","h":"9e7f1275797d388b4a2a151a704464af7d42de43d77e9dcd29801771233d40ee","n":"User Thủ Khoa","e":"","r":"user"}];
+const AUTH_SALT="cbad17f58316a2550f14eeecb78c7e16";
+const ACCOUNTS=[{"u":"tuan.nt","h":"ea6c7223a770d88eb59cbfc8ccc6c479b4d4dc7f64aad4678d4e82431d703ae3","n":"Nguyền Trần Tuấn","e":"","r":"user"},{"u":"thanh.nnt","h":"645988c036282f652d44473ceae931519ca5cb3a1983d9060b21e3db0c956650","n":"Nguyễn Ngọc Trang Thanh","e":"","r":"user"},{"u":"kiet.tt","h":"ea8edd7cc813819903325647c8782c73979844f42e892716e0b8e49c803b253f","n":"Tuấn Kiệt","e":"","r":"admin"},{"u":"tuyet.bt","h":"013c510206b682af2eddaad93a15f7ae2926cf001a0ebc67e76eabbe7a801e6b","n":"Bùi Thị Tuyết","e":"","r":"user"},{"u":"maianh","h":"efab5baac01033ea5d7549b0473471e2f8ee13217d972919f3d929de2ec7b16a","n":"Nguyễn Thị Mai Anh","e":"","r":"user"},{"u":"ngocthao","h":"3bff368e58c0ec51a99a3deeaad323d4cc58f02bb02400243459c1e9c9e54a6d","n":"Ngọc Thảo","e":"","r":"user"},{"u":"thukhoa100","h":"9cd1a41336643abe9f8670adc7181182401274f16fac7982ecc506bfc6faa20e","n":"User Thủ Khoa","e":"","r":"user"}];
 function __utf8(s){return unescape(encodeURIComponent(s));}
 function __sha256(ascii){
   function R(v,a){return(v>>>a)|(v<<(32-a));}
@@ -5353,7 +5437,7 @@ function __authInit(boot){
 +'<label for="__lp">Mật khẩu</label><input id="__lp" type="password" autocomplete="off">'
 +'<button type="submit">Đăng nhập</button>'
 +'<div class="err" id="__lerr"></div>'
-+'<div class="ft">Chỉ dành cho người dùng được cấp tài khoản.<br>Phiên bản K1.26.038</div>'
++'<div class="ft">Chỉ dành cho người dùng được cấp tài khoản.<br>Phiên bản K1.26.039</div>'
 +'</form>';
   document.body.appendChild(g);
   document.documentElement.style.overflow='hidden';
